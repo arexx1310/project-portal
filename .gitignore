@@ -1,0 +1,17 @@
+# Environment variables
+.env
+server/.env
+client/.env
+client/src/.env
+
+# Node modules
+node_modules/
+server/node_modules/
+client/node_modules/
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
