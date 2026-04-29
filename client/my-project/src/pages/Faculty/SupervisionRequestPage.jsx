@@ -60,7 +60,7 @@ function RequestRow({ request, onView }) {
              </span>
             {getBadge(request.myStatus)}
             <span className="text-slate-400 text-xs flex items-center gap-1 font-medium">
-              <Calendar size={13} /> {new Date(request.createdAt).toLocaleDateString()}
+              <Calendar size={13} /> Created At: {new Date(request.createdAt).toLocaleDateString()}
             </span>
           </div>
         </div>

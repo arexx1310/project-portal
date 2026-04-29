@@ -63,7 +63,14 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
 
   const facultyLinks = [
     { to: "/faculty/dashboard", icon: LayoutDashboard, text: "Dashboard" },
-    { to: "/faculty/profile", icon: User, text: "Profile"},
+    { text: "Profile Settings" ,
+      icon: User,
+      isDropdown: true,
+      subLinks: [
+        {to: "/faculty/profile", icon: User, text: "Profile"},
+        {to: "/faculty/change-password", icon: Info, text: "Change Password"}
+      ]
+    },
     { to: "/faculty/btpconfig",icon: Settings2,text: "BTP Configuration"},
     hasFacultyRole(["BTP_COMMITTEE_HEAD","BTP_COMMITTEE_MEMBER"]) && { to: "/faculty/btp/student-management", icon: Settings2, text: "Student Management" },
     
@@ -81,7 +88,14 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
 
   const studentLinks = [
     { to: "/student/dashboard", icon: LayoutDashboard, text: "Dashboard" },
-    { to: "/student/profile", icon: User, text: "Profile"},
+    { text: "Profile Settings" ,
+      icon: User,
+      isDropdown: true,
+      subLinks: [
+        {to: "/student/profile", icon: User, text: "Profile"},
+        {to: "/student/change-password", icon: Info, text: "Change Password"}
+      ]
+    },
     {
       text: "BTP Registrations",
       icon: Settings2,

@@ -124,7 +124,7 @@ const BTPConfigPage = () => {
                 <span className="px-4 py-1.5 bg-blue-600 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl shadow-lg shadow-blue-100">
                     Active Department
                 </span>
-                <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter mt-4 italic">{config.department}</h1>
+                <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mt-4 italic">{config.department}</h1>
                 <div className="flex flex-wrap gap-2 mt-4">
                     {config.specializations?.map((spec, i) => (
                         <span key={i} className="px-3 py-1 bg-slate-50 border border-slate-100 text-slate-500 text-[10px] font-bold uppercase rounded-lg">

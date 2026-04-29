@@ -22,6 +22,7 @@ import ManageStudentPage from "./pages/Admin/ManageStudentPage";
 // Faculty pages
 import FacultyDashboard from "./pages/Faculty/DashboardPage";
 import FacultyProfilePage from "./pages/Faculty/ProfilePage";
+import ChangePasswordFaculty from "./pages/Faculty/Security";
 import BTPConfigPage from "./pages/Faculty/BTPConfigPage";
 import SupervisionRequestsPage from "./pages/Faculty/SupervisionRequestPage";
 import SupervisedGroupsPage from "./pages/Faculty/SupervisedGroupsPage";
@@ -30,6 +31,7 @@ import StudentsManagementPage from "./pages/Faculty/ReportPage";
 // Student pages
 import StudentDashboard from "./pages/Student/DashboardPage";
 import StudentProfilePage from "./pages/Student/ProfilePage";
+import ChangePasswordStudent from "./pages/Student/Security";
 import MyGroupPage from "./pages/Student/MyGroupPage";
 import BTPInvitesPage from "./pages/Student/InvitesPage";
 import ProjectProposalPage from "./pages/Student/ProjectProposalPage,";
@@ -95,6 +97,7 @@ const App = () => {
           <Route element={<AppLayout />}>
             <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
             <Route path="/faculty/profile" element={<FacultyProfilePage />} />
+            <Route path="/faculty/change-password" element={<ChangePasswordFaculty/>}/>
             <Route path="/faculty/btpconfig" element={<BTPConfigPage />} />
             <Route path="/faculty/btp/supervision-requests" element={<SupervisionRequestsPage />} />
             <Route path="/faculty/btp/supervised-groups" element={<SupervisedGroupsPage />} />
@@ -107,6 +110,7 @@ const App = () => {
           <Route element={<AppLayout />}>
             <Route path="/student/dashboard" element={<StudentDashboard />} />
             <Route path="/student/profile" element={<StudentProfilePage />} />
+            <Route path="/student/change-password" element={<ChangePasswordStudent/>}/>
             <Route path="/student/btp/mygroup" element={<MyGroupPage />} />
             <Route path="/student/project/proposals" element={<ProjectProposalPage />} />
             <Route path="/student/groups-invites" element={<BTPInvitesPage />} />

@@ -111,7 +111,7 @@ function GroupDetail({ data, onBack }) {
 
       <div className="bg-white rounded-3xl md:rounded-[3rem] border border-slate-100 overflow-hidden shadow-sm">
         {/* Header Section */}
-        <div className="relative bg-slate-900 p-8 md:p-16 text-white">
+        <div className="relative bg-slate-900 p-8 md:p-10 text-white">
           <div className="relative z-10">
             <div className="flex flex-wrap items-center gap-2 mb-4 md:mb-6">
               {/* Mapping Departments Array */}
@@ -226,7 +226,7 @@ function GroupDetail({ data, onBack }) {
                   <div key={i} className="p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:border-blue-200 transition-colors">
                     <div className="flex justify-between items-center mb-2">
                       <p className="font-black text-slate-900 uppercase text-sm">{s.username}</p>
-                      <span className="text-blue-600 text-[8px] font-black px-1.5 py-0.5 bg-blue-50 rounded border border-blue-100">
+                      <span className="text-blue-600 text-[10px] font-black px-1.5 py-0.5 bg-blue-50 rounded border border-blue-100">
                         #{s.rollNumber}
                       </span>
                     </div>

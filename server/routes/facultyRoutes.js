@@ -54,8 +54,8 @@ router.get("/groups",getMyGroups);
 router.get("/managegroup/groups/:groupId",getFullGroupDetails);
 
 router.use(authorizeFacultyRoles("BTP_COMMITTEE_HEAD","BTP_COMMITTEE_MEMBER"));
-router.get("/ungrouped-students/excel",exportUngroupedStudentsExcel);
-router.get("/unsupervised-groups/excel",exportUnsupervisedGroupsExcel);
-router.get("/department/groups",exportFullGroupsDataExcel);
+router.post("/ungrouped-students/excel",exportUngroupedStudentsExcel);
+router.post("/unsupervised-groups/excel",exportUnsupervisedGroupsExcel);
+router.post("/department/groups",exportFullGroupsDataExcel);
 
 export default router;

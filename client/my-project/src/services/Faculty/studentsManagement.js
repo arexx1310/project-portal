@@ -13,31 +13,32 @@ const downloadBlob = (data, filename) => {
 };
 
 const studentsManagement = {
-
-  getExcelUngrouped: async () => {
-    const res = await axiosInstance.get(
+  getExcelUngrouped: async (payload) => {
+    const res = await axiosInstance.post(
       API_PATHS.FACULTY.GET_UNGROUPED_DATA,
+      payload,
       { responseType: "blob" }
     );
     downloadBlob(res.data, "Ungrouped_Students.xlsx");
   },
 
-  getExcelUnsupervisedGroups: async () => {
-    const res = await axiosInstance.get(
+  getExcelUnsupervisedGroups: async (payload) => {
+    const res = await axiosInstance.post(
       API_PATHS.FACULTY.GET_UNSUPERVISED_DATA,
+      payload,
       { responseType: "blob" }
     );
     downloadBlob(res.data, "Unsupervised_Groups.xlsx");
   },
 
-  getExcelFullGroupsData: async () => {
-    const res = await axiosInstance.get(
+  getExcelGroupsWithProjects: async (payload) => {
+    const res = await axiosInstance.post(
       API_PATHS.FACULTY.GET_GROUPS_DATA,
+      payload,
       { responseType: "blob" }
     );
-    downloadBlob(res.data, "Full_Groups_Data.xlsx");
+    downloadBlob(res.data, `Groups_Semester${payload.semester}.xlsx`);
   },
-
 };
 
 export default studentsManagement;
