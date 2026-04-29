@@ -7,6 +7,14 @@ import Session from "../../models/Session.js";
 import DepartmentConfig from "../../models/DepartmentConfig.js";
 import { sendNotification } from "../notificationController.js";
 
+// ── helper to avoid crashing after commit ────────────────────────────────
+const safeNotify = async (payload, recipients) => {
+  try {
+    await sendNotification(payload, recipients);
+  } catch (notifyErr) {
+    console.error("sendNotification failed (non-fatal):", notifyErr);
+  }
+};
 
 /**
  * @desc    Get BTP config for student's department
@@ -14,37 +22,33 @@ import { sendNotification } from "../notificationController.js";
  * @access  Private (attachStudentProfile middleware required)
  */
 export const getBTPConfig = async (req, res, next) => {
-    try {
-
-        if(!req.student || !req.student.departmentConfig) {
-            return res.status(403).json({
-              success: false,
-              message: "Unauthorized: Student profile not attached",
-          });
-        }
-
-        const departmentConfig = await DepartmentConfig
-            .findById(req.student.departmentConfig)
-            .select("department btpConfig -_id");
-
-        if (!departmentConfig) {
-            return res.status(404).json({
-                success: false,
-                message: "Could not fetch department's BTP configuration."
-            });
-        }
-
-        return res.status(200).json({
-            success: true,
-            data: departmentConfig
-        });
-
-    } catch (error) {
-        next(error);
+  try {
+    if (!req.student || !req.student.departmentConfig) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized: Student profile not attached",
+      });
     }
+
+    const departmentConfig = await DepartmentConfig.findById(
+      req.student.departmentConfig
+    ).select("department btpConfig -_id");
+
+    if (!departmentConfig) {
+      return res.status(404).json({
+        success: false,
+        message: "Could not fetch department's BTP configuration.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: departmentConfig,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
-
-
 
 /**
  * @desc Look up a student by roll number to add to invite
@@ -90,7 +94,6 @@ export const addMember = async (req, res, next) => {
       });
     }
 
-    // Give early feedback if the student is already taken
     if (!member.isAvailableForInvite || member.groupId) {
       return res.status(400).json({
         success: false,
@@ -264,8 +267,6 @@ export const createGroupInvite = async (req, res, next) => {
     }
 
     // ================= 8. Cross-Dept Validation =================
-
-    // Count per department
     const deptCounts = {};
     deptCounts[initiatorDeptId] = 1;
 
@@ -289,7 +290,6 @@ export const createGroupInvite = async (req, res, next) => {
       const { department, btpConfig } = deptData;
       const crossRules = btpConfig.crossDepartmentRules;
 
-      //  Cross not allowed
       if (!crossRules?.isAllowed && deptId !== initiatorDeptId) {
         await dbSession.abortTransaction();
         return res.status(400).json({
@@ -298,15 +298,13 @@ export const createGroupInvite = async (req, res, next) => {
         });
       }
 
-      // Enforce minimum
       if (crossRules?.isAllowed) {
-        const minSame = crossRules.minSameDepartmentStudents || 1;
-
+        const minSame = crossRules.minSameDepartmentStudents;
         if (count < minSame) {
           await dbSession.abortTransaction();
           return res.status(400).json({
             success: false,
-            message: `${department} requires at least ${minSame} students, but only ${count} selected.`,
+            message: `${department} requires at least ${minSame} students from same department, but only ${count} selected.`,
           });
         }
       }
@@ -328,13 +326,16 @@ export const createGroupInvite = async (req, res, next) => {
     initiator.isAvailableForInvite = false;
     await initiator.save({ session: dbSession });
 
-    // ================= 10. Notifications =================
+    // ================= 10. Commit =================
+    await dbSession.commitTransaction();
+
+    // ================= 11. Notify AFTER commit =================
     const recipients = members.map((m) => ({
       _id: m.user._id,
       role: m.user.role,
     }));
 
-    await sendNotification(
+    await safeNotify(
       {
         type: "GROUP_INVITE_RECEIVED",
         message: `You have been invited to join group "${groupName.trim()}" by ${initiator.rollNumber}.`,
@@ -342,19 +343,13 @@ export const createGroupInvite = async (req, res, next) => {
         refModel: "GroupFormation",
         triggeredBy: req.user.id,
       },
-      recipients,
-      dbSession,
-      null
+      recipients
     );
-
-    // ================= 11. Commit =================
-    await dbSession.commitTransaction();
 
     return res.status(201).json({
       success: true,
       message: "Group invite created successfully.",
     });
-
   } catch (error) {
     await dbSession.abortTransaction();
     next(error);
@@ -390,12 +385,11 @@ export const getGroupInvite = async (req, res, next) => {
 
     const invite = await GroupFormation.findOne({
       _id: inviteId,
-      $or: [
-        { initiator: studentId },
-        { "memberInvites.student": studentId },
-      ],
+      $or: [{ initiator: studentId }, { "memberInvites.student": studentId }],
     })
-      .select("groupName status rejectedBy createdAt updatedAt initiator memberInvites finalGroup")
+      .select(
+        "groupName status rejectedBy createdAt updatedAt initiator memberInvites finalGroup"
+      )
       .populate({
         path: "initiator",
         select: "rollNumber specialization",
@@ -447,7 +441,6 @@ export const getGroupInvite = async (req, res, next) => {
     next(error);
   }
 };
-
 
 /**
  * @desc List all invites for the current student
@@ -518,7 +511,7 @@ export const cancelGroupInvite = async (req, res, next) => {
       _id: inviteId,
       initiator: studentId,
     })
-      .select("status initiator memberInvites")
+      .select("status initiator memberInvites groupName")
       .session(dbSession);
 
     if (!invite) {
@@ -539,20 +532,48 @@ export const cancelGroupInvite = async (req, res, next) => {
 
     invite.status = "Rejected";
     invite.rejectedBy = "Initiator";
-    await invite.save({ session: dbSession });
 
     const allStudentIds = [
       invite.initiator,
       ...invite.memberInvites.map((m) => m.student),
     ];
 
-    await Student.updateMany(
-      { _id: { $in: allStudentIds } },
-      { $set: { isAvailableForInvite: true } },
-      { session: dbSession }
-    );
+    // Fetch members for notification before commit
+    const memberStudents = await Student.find({
+      _id: { $in: invite.memberInvites.map((m) => m.student) },
+    })
+      .populate("user", "_id role")
+      .session(dbSession)
+      .lean();
+
+    await Promise.all([
+      invite.save({ session: dbSession }),
+      Student.updateMany(
+        { _id: { $in: allStudentIds } },
+        { $set: { isAvailableForInvite: true } },
+        { session: dbSession }
+      ),
+    ]);
 
     await dbSession.commitTransaction();
+
+    // Notify members AFTER commit
+    const recipients = memberStudents
+      .filter((s) => s.user)
+      .map((s) => ({ _id: s.user._id, role: s.user.role }));
+
+    if (recipients.length > 0) {
+      await safeNotify(
+        {
+          type: "GROUP_INVITE_CANCELLED",
+          message: `The group invite for "${invite.groupName}" has been cancelled by the initiator.`,
+          refId: invite._id,
+          refModel: "GroupFormation",
+          triggeredBy: req.user.id,
+        },
+        recipients
+      );
+    }
 
     return res.status(200).json({
       success: true,
@@ -661,7 +682,6 @@ export const memberRespond = async (req, res, next) => {
         .session(dbSession)
         .lean();
 
-      // Persist all DB changes first, then commit, then notify
       await Promise.all([
         invite.save({ session: dbSession }),
         Student.updateMany(
@@ -673,9 +693,8 @@ export const memberRespond = async (req, res, next) => {
 
       await dbSession.commitTransaction();
 
-      //  Notify AFTER commit so notification is never sent for a rolled-back state
       if (initiatorStudent?.user) {
-        await sendNotification(
+        await safeNotify(
           {
             type: "GROUP_INVITE_REJECTED",
             message: `${studentRecord.rollNumber} rejected the group invite for "${invite.groupName}". Group registration cancelled.`,
@@ -684,7 +703,6 @@ export const memberRespond = async (req, res, next) => {
             triggeredBy: req.user.id,
           },
           [{ _id: initiatorStudent.user._id, role: initiatorStudent.user.role }]
-          // No dbSession — transaction is already committed
         );
       }
 
@@ -697,7 +715,9 @@ export const memberRespond = async (req, res, next) => {
     // ── ACCEPTANCE ───────────────────────────────────────────────────────────
 
     // Deadline check
-    const config = await DepartmentConfig.findById(studentRecord.departmentConfig)
+    const config = await DepartmentConfig.findById(
+      studentRecord.departmentConfig
+    )
       .select("btpConfig.groupCreationDeadline")
       .session(dbSession);
 
@@ -710,47 +730,64 @@ export const memberRespond = async (req, res, next) => {
     }
 
     if (new Date() > new Date(config.btpConfig.groupCreationDeadline)) {
-      await dbSession.abortTransaction();
+      // Deadline passed — reject the whole invite and free everyone
+      slot.status = "Rejected";
+      slot.respondedAt = new Date();
+      invite.status = "Rejected";
+      invite.rejectedBy = `Member: ${studentRecord.rollNumber} (deadline passed)`;
+
+      const allStudentIds = [
+        invite.initiator,
+        ...invite.memberInvites.map((m) => m.student),
+      ];
+
+      const initiatorStudent = await Student.findById(invite.initiator)
+        .populate("user", "_id role")
+        .session(dbSession)
+        .lean();
+
+      await Promise.all([
+        invite.save({ session: dbSession }),
+        Student.updateMany(
+          { _id: { $in: allStudentIds } },
+          { $set: { isAvailableForInvite: true } },
+          { session: dbSession }
+        ),
+      ]);
+
+      await dbSession.commitTransaction();
+
+      if (initiatorStudent?.user) {
+        await safeNotify(
+          {
+            type: "GROUP_INVITE_REJECTED",
+            message: `Group invite for "${invite.groupName}" was cancelled because the group creation deadline has passed.`,
+            refId: invite._id,
+            refModel: "GroupFormation",
+            triggeredBy: req.user.id,
+          },
+          [{ _id: initiatorStudent.user._id, role: initiatorStudent.user.role }]
+        );
+      }
+
       return res.status(400).json({
         success: false,
-        message: "Cannot respond. The group creation deadline has passed.",
-      });
-    }
-
-    // Atomic DB-level guard against race conditions.
-    // Only mark unavailable if the student is still available and has no group.
-    // This replaces the in-memory check + studentRecord.save() pattern.
-    const claimedStudent = await Student.findOneAndUpdate(
-      {
-        _id: studentRecord._id,
-        isAvailableForInvite: true,
-        groupId: { $exists: false },
-      },
-      { $set: { isAvailableForInvite: false } },
-      { session: dbSession, new: true }
-    );
-
-    if (!claimedStudent) {
-      await dbSession.abortTransaction();
-      return res.status(400).json({
-        success: false,
-        message: "You are already part of a group or have accepted another invite.",
+        message:
+          "The group creation deadline for your department has passed. The invite has been cancelled and all members have been freed.",
       });
     }
 
     slot.status = "Accepted";
     slot.respondedAt = new Date();
 
-    // Save invite once here with the updated slot.
-    // allAccepted is derived from the now-mutated in-memory array which is consistent.
     await invite.save({ session: dbSession });
 
-    const allAccepted = invite.memberInvites.every((m) => m.status === "Accepted");
+    const allAccepted = invite.memberInvites.every(
+      (m) => m.status === "Accepted"
+    );
 
     // ── All members accepted → form the group ────────────────────────────────
     if (allAccepted) {
-      // getActiveSession called without a session — wrap if your
-      // model supports it, otherwise accept it as a read-only non-transactional call.
       const activeSession = await Session.getActiveSession();
 
       if (!activeSession) {
@@ -790,7 +827,6 @@ export const memberRespond = async (req, res, next) => {
 
       const groupId = group._id;
 
-      // Single save for invite — status + finalGroup set together
       invite.status = "Approved";
       invite.finalGroup = groupId;
 
@@ -805,8 +841,7 @@ export const memberRespond = async (req, res, next) => {
 
       await dbSession.commitTransaction();
 
-      // Notify AFTER commit
-      await sendNotification(
+      await safeNotify(
         {
           type: "GROUP_FORMED",
           message: `Your group "${invite.groupName}" has been formed successfully!`,
@@ -836,9 +871,8 @@ export const memberRespond = async (req, res, next) => {
 
     await dbSession.commitTransaction();
 
-    // FIX #5: Notify AFTER commit
     if (initiatorStudent?.user) {
-      await sendNotification(
+      await safeNotify(
         {
           type: "GROUP_INVITE_ACCEPTED",
           message: `${studentRecord.rollNumber} accepted your group invite for "${invite.groupName}". Waiting for ${remaining} more member(s).`,

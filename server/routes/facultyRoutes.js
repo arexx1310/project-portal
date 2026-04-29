@@ -30,7 +30,7 @@ router.use(protect, authorize("faculty"), attachFacultyProfile);
 /* ============== Personal Info and Security ============ */
 
 router.get("/profile/",getProfile);
-router.post("/updatepassword",updatePassword);
+router.put("/updatepassword",updatePassword);
 
 router.get("/notifications", getNotifications);
 

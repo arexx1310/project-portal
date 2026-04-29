@@ -163,7 +163,7 @@ export const getMe = async (req, res, next) => {
 /* ================= Logout ================= */
 
 export const logout = (req, res) => {
-  // FIX 9: Logout cookie must mirror the exact same attributes as setAuthCookie.
+  // Logout cookie must mirror the exact same attributes as setAuthCookie.
   // If sameSite/secure/path differ, the browser treats it as a different cookie
   // and the original auth cookie is NOT cleared — user appears logged out on the
   // frontend but the cookie persists and can still authenticate API requests.

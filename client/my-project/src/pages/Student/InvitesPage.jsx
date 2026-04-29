@@ -114,10 +114,10 @@ function CreateInviteForm({ config, onSubmit, onCancel, submitting, submitError 
   };
 
   return (
-    <div className="max-w-3xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="w-full mx-auto bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="bg-slate-900 p-8 text-white flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-black tracking-tight uppercase italic">Create Group Invite</h2>
+          <h2 className="text-2xl font-black tracking-tight uppercase">Create Group Invite</h2>
           <p className="text-slate-400 text-sm mt-1 font-medium italic">Invite your peers to collaborate</p>
         </div>
         <div className="p-3 bg-slate-800 rounded-2xl text-blue-400">

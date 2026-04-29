@@ -219,7 +219,7 @@ export const getFullGroupDetails = async (req, res, next) => {
                 _id: groupId,
                 supervisors: facultyId
             })
-            .select("_id departmentConfigs status supervisors session")
+            .select("_id name departmentConfigs status supervisors session")
             .populate({ path: "departmentConfigs", select: "department -_id" })
             .populate({ path: "session", select: "name academicYear -_id" })
             .populate({
@@ -263,6 +263,7 @@ export const getFullGroupDetails = async (req, res, next) => {
             data: {
                 group: {
                     _id: group._id,
+                    name: group.name,
                     departments: departmentStrings, // Now returns ["ELECTRONICS AND COMMUNICATIONS"]
                     session: group.session,
                     status: group.status

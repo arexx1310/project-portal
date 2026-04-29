@@ -112,7 +112,7 @@ const FacultyProfilePage = () => {
                   onClick={() => setIsModalOpen(true)}
                   className="mb-2 flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-200"
                 >
-                  <ShieldCheck size={18} /> Security Settings
+                  <ShieldCheck size={18} /> Change Password
                 </button>
               </div>
             </div>

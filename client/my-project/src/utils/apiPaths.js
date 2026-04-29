@@ -12,7 +12,7 @@ export const API_PATHS = {
   ADMIN: {
 
     CREATE_DEPARTMENTS: "/api/admin/department",
-    UPDATE_DEPARTMENT: (id) => `/api/admin/department/:id`,
+    UPDATE_DEPARTMENT: (id) => `/api/admin/department/${id}`,
     GET_DEPARTMENTS: "/api/admin/departments",
     
     /*===============SESSIONS==============*/ 

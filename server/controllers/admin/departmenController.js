@@ -1,5 +1,42 @@
 // controllers/admin/departmentController.js
+import mongoose from "mongoose";
 import DepartmentConfig from "../../models/DepartmentConfig.js";
+
+
+const validateAndNormalizeInput = ({
+  department,
+  specializations,
+}) => {
+  const result = {};
+
+  // Validate & normalize department
+  if (department !== undefined) {
+    if (typeof department !== "string" || department.trim().length === 0) {
+      return { error: "Department name must be a valid string" };
+    }
+
+    result.department = department.trim().toUpperCase();
+  } else {
+    return { error: "Department name is required" };
+  }
+
+  // Validate & normalize specializations
+  if (specializations !== undefined) {
+    if (!Array.isArray(specializations) || specializations.length === 0) {
+      return { error: "Specializations must be a non-empty array" };
+    }
+
+    const normalizedSpecs = specializations
+      .map((spec) => spec.trim().toUpperCase())
+      .filter((spec) => spec.length > 0);
+
+    result.specializations = [...new Set(normalizedSpecs)];
+  } else {
+    return { error: "At least one specialization is required" };
+  }
+
+  return { data: result };
+};
 
 /**
  * @desc Create department with specializations
@@ -11,27 +48,19 @@ export const createDepartment = async (req, res, next) => {
     // Received data containing departmnet name (string) and specializations as an array of strings
     const { department, specializations } = req.body;
 
-    // Validate received input
-     if (
-      typeof department !== "string" ||
-      department.trim().length === 0 ||
-      !Array.isArray(specializations) ||
-      specializations.length === 0
-    ) {
+    const { error, data } = validateAndNormalizeInput({
+      department,
+      specializations,
+    });
+
+    if (error) {
       return res.status(400).json({
         success: false,
-        message:
-          "Department name must be a string and at least one specialization is required.",
+        message: error,
       });
     }
 
-    // Create normalized department and specializations string all to upper case
-    const deptName = department.trim().toUpperCase();
-
-    const normalizedSpecs = specializations
-      .map(spec => spec.trim().toUpperCase())
-      .filter(spec => spec.length > 0);
-    
+    const { department: deptName, specializations: normalizedSpecs } = data;
 
     // Check if department already exists
     const existingDept = await DepartmentConfig.findOne({
@@ -80,6 +109,11 @@ export const createDepartment = async (req, res, next) => {
   }
 }; 
 
+/**
+ * @desc Create department with specializations
+ * @route PUT /api/admin/department/:id
+ * @access Admin
+ */
 export const editDepartment = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -103,22 +137,26 @@ export const editDepartment = async (req, res, next) => {
       });
     }
 
-    let updatedFields = {};
+    //  Use reusable validator
+    const { error, data } = validateAndNormalizeInput({
+      department,
+      specializations,
+      isUpdate: true,
+    });
 
-    // Update department name (if provided)
-    if (department !== undefined) {
-      if (typeof department !== "string" || department.trim().length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Department name must be a valid string",
-        });
-      }
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: error,
+      });
+    }
 
-      const deptName = department.trim().toUpperCase();
+    let updatedFields = { ...data };
 
-      // Check for duplicate (excluding current doc)
+    //  Check duplicate only if department is being updated
+    if (updatedFields.department) {
       const duplicate = await DepartmentConfig.findOne({
-        department: deptName,
+        department: updatedFields.department,
         _id: { $ne: id },
       });
 
@@ -128,27 +166,6 @@ export const editDepartment = async (req, res, next) => {
           message: "Another department with this name already exists",
         });
       }
-
-      updatedFields.department = deptName;
-    }
-
-    // ✅ Update specializations (if provided)
-    if (specializations !== undefined) {
-      if (
-        !Array.isArray(specializations) ||
-        specializations.length === 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: "Specializations must be a non-empty array",
-        });
-      }
-
-      const normalizedSpecs = specializations
-        .map((spec) => spec.trim().toUpperCase())
-        .filter((spec) => spec.length > 0);
-
-      updatedFields.specializations = [...new Set(normalizedSpecs)];
     }
 
     // If nothing to update
@@ -175,6 +192,7 @@ export const editDepartment = async (req, res, next) => {
     next(error);
   }
 };
+
 
 /**
  * @desc Get list of exisiting departments with their specializations

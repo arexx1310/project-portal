@@ -2,6 +2,7 @@ import Faculty from "../../models/Faculty.js";
 import User from "../../models/User.js";
 import mongoose from "mongoose";
 import { NotificationEvent, UserNotification } from "../../models/Notifications.js";
+import { sendNotification } from "../notificationController.js";
 
 
 /**
@@ -73,11 +74,13 @@ export const getFaculty = async (req, res, next) => {
 };
 
 /**
- * @desc Update faculyt special access role
+ * @desc Update faculty special access role
  * @route PUT /api/admin/faculty/:id
  * @access Admin
  */
 export const updateFaculty = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  
   try {
     const { id } = req.params;
     const { roles } = req.body;
@@ -105,38 +108,53 @@ export const updateFaculty = async (req, res, next) => {
       updateData.roles = [...new Set(roles)];
     }
 
-    const faculty = await Faculty.findByIdAndUpdate(id, updateData, { new: true, runValidators: true })
+    session.startTransaction();
+
+    const faculty = await Faculty.findByIdAndUpdate(id, updateData, { 
+      new: true, 
+      runValidators: true,
+      session 
+    })
       .populate("user", "name email isActive role")
       .populate("departmentConfig", "department")
       .lean();
 
     if (!faculty) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ success: false, message: "Faculty not found" });
     }
 
-    if (roles !== undefined) {
-      const assignedRoles = updateData.roles;
+    // Send notification only if roles were actually changed
+    if (roles !== undefined && faculty.user) {
+      const assignedRoles = updateData.roles || [];
       const message =
         assignedRoles.length === 0
           ? `Your special roles have been removed in the ${faculty.departmentConfig.department} department.`
           : `You have been assigned the following role(s) in ${faculty.departmentConfig.department}: ${assignedRoles.map(r => roleLabels[r]).join(", ")}.`;
 
-      const event = await NotificationEvent.create({
-        type: "ROLE_ASSIGNED",
-        message,
-        refId: faculty._id,
-        refModel: "Faculty",
-        triggeredBy: req.user._id,
-      });
+      // Create recipients array properly
+      const recipients = [{
+        _id: faculty.user._id,
+        role: faculty.user.role
+      }];
 
-      await UserNotification.create({
-        recipient: faculty.user._id,
-        recipientRole: faculty.user.role,
-        event: event._id,
-      });
+      await sendNotification(
+        {
+          type: "ROLE_ASSIGNED",
+          message,
+          refId: faculty._id,
+          refModel: "Faculty",
+          triggeredBy: req.user?.id 
+        },
+        recipients,
+        session // Pass the session for transaction
+      );
     }
 
-    // res.json LAST
+    await session.commitTransaction();
+    session.endSession();
+
     res.status(200).json({ 
       success: true, 
       message: "Faculty updated successfully", 
@@ -144,6 +162,8 @@ export const updateFaculty = async (req, res, next) => {
     });
 
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     next(error);
   }
 };

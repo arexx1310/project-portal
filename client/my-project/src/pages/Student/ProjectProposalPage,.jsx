@@ -526,7 +526,7 @@ const ProjectProposalPage = () => {
           </div>
         )}
 
-        <ConfirmModal isOpen={isConfirmSubmitOpen} onClose={() => setIsConfirmSubmitOpen(false)} onConfirm={handleSubmit} title="Submit Proposal?" theme="green" loading={submitting} message="Official submission. Details cannot be edited once sent." >Accept</ConfirmModal>
+        <ConfirmModal isOpen={isConfirmSubmitOpen} onClose={() => setIsConfirmSubmitOpen(false)} onConfirm={handleSubmit} title="Submit Proposal?" theme="green" loading={submitting} message="Official submission. Details cannot be edited once sent." >Submit</ConfirmModal>
         <ConfirmModal isOpen={isConfirmDeleteOpen} onClose={() => setIsConfirmDeleteOpen(false)} onConfirm={handleDelete} title="Delete Proposal?" theme="red" loading={deleting !== null} message="This action is permanent and cannot be undone." > Cancel</ConfirmModal>
       </div>
     </div>

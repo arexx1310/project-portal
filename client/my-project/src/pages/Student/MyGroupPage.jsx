@@ -94,10 +94,7 @@ const MyGroupPage = () => {
             <div className="relative z-10">
               <h3 className="text-xl sm:text-3xl font-black text-blue-900 mb-4">{group.name}</h3>
               <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mt-2">
-                <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
-                  <GraduationCap size={16} className="text-blue-500 flex-shrink-0" />
-                  <span className="font-bold text-xs sm:text-sm text-slate-700">{group.department}</span>
-                </div>
+                
                 <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
                   <Calendar size={16} className="text-blue-500 flex-shrink-0" />
                   <span className="font-bold text-xs sm:text-sm text-slate-700">Session: {group.session}</span>

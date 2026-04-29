@@ -125,8 +125,8 @@ function GroupDetail({ data, onBack }) {
               </span>
             </div>
             
-            <h2 className="text-3xl md:text-6xl font-black uppercase italic tracking-tighter leading-tight mb-4 md:mb-6">
-              {group.name || projects[0]?.title || "Research Group"}
+            <h2 className="text-1xl md:text-4xl font-black tracking-tighter leading-tight mb-4 md:mb-6">
+              {group.name}
             </h2>
 
             <div className="flex flex-wrap items-center gap-4 md:gap-6 text-slate-400 font-bold uppercase tracking-widest text-[10px] md:text-xs">
@@ -155,27 +155,64 @@ function GroupDetail({ data, onBack }) {
                   No active projects documented.
                 </div>
               ) : (
-                <div className="space-y-4 md:space-y-6">
-                  {projects.map((p) => (
-                    <div key={p._id} className="p-6 md:p-8 bg-slate-50/50 rounded-2xl md:rounded-[2rem] border border-slate-100">
-                      <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-4">
-                        <div>
-                          <h4 className="text-lg md:text-xl font-black text-slate-900 uppercase tracking-tight">{p.title}</h4>
-                          <span className="text-blue-600 font-black text-[8px] md:text-[9px] uppercase tracking-widest">{p.domain}</span>
+              <div className="space-y-6 md:space-y-8 p-4">
+                {projects.map((p) => (
+                  <div 
+                    key={p._id} 
+                    className="group relative p-8 bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(79,70,229,0.1)] hover:-translate-y-1"
+                  >
+                    {/* Decorative Gradient Border (Hover Effect) */}
+                    <div className="absolute inset-0 rounded-[2.5rem] border-2 border-transparent pointer-events-none" />
+
+                      {/* Top Meta Row */}
+                      <div className="flex flex-wrap items-center gap-3 mb-6">
+                        <div className="px-4 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-200">
+                          {p.semester === 7 ? "Project-I" : p.semester === 2 ? "Project-II" : `Project-${p.semester}`}
                         </div>
-                        <span className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border bg-white ${getStatusStyles(p.status)}`}>
+                        <div className="h-1 w-1 rounded-full bg-slate-300" />
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">
+                          Semester {p.semester}
+                        </span>
+                        <div className="h-1 w-1 rounded-full bg-slate-300" />
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">
+                          Session {p.session.name}
+                        </span>
+                     </div>
+
+                      {/* Title & Domain Section */}
+                      <div className="mb-6">
+                        <h4 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-slate-900 to-slate-600 uppercase tracking-tighter mb-3">
+                          {p.title}
+                        </h4>
+                        
+                        <div className="flex items-center gap-3">
+                          <span className="inline-flex items-center px-3 py-1 rounded-md bg-amber-50 text-amber-600 border border-amber-100 font-black text-[10px] uppercase tracking-[0.2em]">
+                            {p.domain}
+                          </span>
+                    
+                        {/* Enhanced Status Badge */}
+                        <span className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border shadow-sm ${getStatusStyles(p.status)}`}>
+                          <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-40"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-current"></span>
+                            </span>
                           {p.status}
                         </span>
                       </div>
-                      <p className="text-slate-600 leading-relaxed mb-6 font-medium text-xs md:text-sm italic">
-                        "{p.description}"
+                  </div>
+
+                    {/* Description with "Glass" effect */}
+                  <div className="relative">
+                    <div className="absolute -left-4 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full" />
+                      <p className="text-slate-600 leading-relaxed font-semibold text-sm md:text-base italic pl-4">
+                        <span className="text-2xl text-indigo-300 font-serif leading-none">“</span>
+                          {p.description}
+                        <span className="text-2xl text-indigo-300 font-serif leading-none">”</span>
                       </p>
-                      <div className="text-[10px] font-bold text-slate-400 uppercase">
-                         Semester {p.semester} • {p.session.name}
-                      </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
+              </div>
               )}
             </section>
 
