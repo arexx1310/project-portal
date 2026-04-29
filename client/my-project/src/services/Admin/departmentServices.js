@@ -27,7 +27,7 @@ const departmentService = {
    * @param {Object} payload : { department?, specializations? }
    */
   updateDepartment: async (id, payload) => {
-    const response = await axiosInstance.patch(
+    const response = await axiosInstance.put(
       API_PATHS.ADMIN.UPDATE_DEPARTMENT(id),
       payload
     );
