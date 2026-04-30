@@ -95,14 +95,7 @@ export const login = async (req, res, next) => {
 
     const token = generateToken(user._id, user.role);
 
-    // const socketToken = generateSocketToken(user._id, user.role);
-
     setAuthCookie(res, token);
-
-    // NOTE: socketToken is intentionally returned in the response body, NOT in a
-    // cookie. It is short-lived (2h), used only for Socket.IO auth handshake, and
-    // is refreshed by the client before expiry. Storing it in memory (React state/ref)
-    // is correct — do not move it to localStorage or a second cookie.
 
     res.status(200).json({
       success: true,
@@ -149,16 +142,6 @@ export const getMe = async (req, res, next) => {
   }
 };
 
-/* ================= Get Socket Token ================= */
-
-// export const getSocketToken = async (req, res, next) => {
-//   try {
-//     const socketToken = generateSocketToken(req.user.id, req.user.role);
-//     res.status(200).json({ success: true, socketToken });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
 
 /* ================= Logout ================= */
 

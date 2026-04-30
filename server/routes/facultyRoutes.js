@@ -28,31 +28,32 @@ const router = express.Router();
 router.use(protect, authorize("faculty"), attachFacultyProfile);
 
 /* ============== Personal Info and Security ============ */
-
 router.get("/profile/",getProfile);
 router.put("/updatepassword",updatePassword);
 
+/* ============== Notifications ============ */
 router.get("/notifications", getNotifications);
 
 /* ============== BTP CONFIG ============ */
-
-// PATCH: Only HOD/Heads can update
+// PATCH only for allowed roles
 router.patch("/btpconfig/:departmentId",authorizeFacultyRoles("BTP_COMMITTEE_HEAD", "HOD"),updateBTPConfig );
-
-
-// GET: All faculty
+// GET: For all faculty
 router.get("/btpconfig",getBTPConfig);
 
+/* ============== Sessions ============ */
+// To use details regarding different sessions
 router.get("/sessions",getSessions);
 
+/* ============== Sessions ============ */
 router.get("/project-approvals",getAllMyRequest);
 router.get("/project-approvals/:requestId",getRequestDetails);
 router.patch("/project-approvals/:requestId/respond", respondToRequest);
 
+/* ============== Details of Group Under Facultie's Supervision ============ */
 router.get("/groups",getMyGroups);
-// router.get("/projects",getMyProjects);
 router.get("/managegroup/groups/:groupId",getFullGroupDetails);
 
+// RESTRICTED PATHS FOR REPORTS GENERATION ONLY FOR BTP COMMITTEE
 router.use(authorizeFacultyRoles("BTP_COMMITTEE_HEAD","BTP_COMMITTEE_MEMBER"));
 router.post("/ungrouped-students/excel",exportUngroupedStudentsExcel);
 router.post("/unsupervised-groups/excel",exportUnsupervisedGroupsExcel);

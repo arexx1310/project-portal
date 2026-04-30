@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import btpService from "../../services/Faculty/btpConfigService";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
@@ -15,36 +15,59 @@ const hasFacultyRole = (user, roles) => {
   return roles.some((role) => userSubRoles.includes(role));
 };
 
+// Fix: converts stored date (ISO string or YYYY-MM-DD) → "YYYY-MM-DD" for date input
+const toDateInput = (val) => {
+  if (!val) return "";
+  return val.toString().split("T")[0];
+};
+
+// Fix: converts "YYYY-MM-DD" from date input → full ISO string backend expects
+const toISOFromDateInput = (val) => {
+  if (!val) return null;
+  return new Date(val).toISOString();
+};
+
 const BTPConfigPage = () => {
   const { user } = useAuth();
   const [config, setConfig] = useState(null);
+  const [originalConfig, setOriginalConfig] = useState(null); // Fix: snapshot for reset
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const canEdit = hasFacultyRole(user, ["BTP_COMMITTEE_HEAD", "HOD"]);
 
-  useEffect(() => {
-    fetchConfig();
-  }, []);
-
-  const fetchConfig = async () => {
+  // Fix: wrapped in useCallback so it's stable for useEffect dependency
+  const fetchConfig = useCallback(async () => {
     try {
       const response = await btpService.getDepartmentConfig();
-      if (response.success) setConfig(response.data);
+      if (response.success) {
+        setConfig(response.data);
+        setOriginalConfig(response.data); // snapshot
+      }
     } catch (err) {
       toast.error("Failed to load department settings");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Fix: fetchConfig in dependency array
+  useEffect(() => {
+    fetchConfig();
+  }, [fetchConfig]);
 
   const handleChange = (e) => {
     if (!canEdit) return;
     const { name, value, type, checked } = e.target;
-    const val = type === "checkbox" ? checked : type === "number" ? parseInt(value) : value;
 
-    // Handle nested crossDepartmentRules
+    // Fix: parseInt with radix 10; empty string stays empty (not NaN)
+    const coerce = (v) => {
+      if (type === "checkbox") return checked;
+      if (type === "number")   return v === "" ? "" : parseInt(v, 10);
+      return v; // "date" type returns YYYY-MM-DD string — kept as-is, converted on submit
+    };
+
     if (name.startsWith("crossDept_")) {
       const field = name.replace("crossDept_", "");
       setConfig((prev) => ({
@@ -53,14 +76,14 @@ const BTPConfigPage = () => {
           ...prev.btpConfig,
           crossDepartmentRules: {
             ...prev.btpConfig.crossDepartmentRules,
-            [field]: val,
+            [field]: coerce(value),
           },
         },
       }));
     } else {
       setConfig((prev) => ({
         ...prev,
-        btpConfig: { ...prev.btpConfig, [name]: val },
+        btpConfig: { ...prev.btpConfig, [name]: coerce(value) },
       }));
     }
   };
@@ -70,14 +93,21 @@ const BTPConfigPage = () => {
     if (!canEdit) return;
     
     const { btpConfig } = config;
+
     if (btpConfig.minStudentsPerGroup > btpConfig.maxStudentsPerGroup) {
       return toast.error("Min students cannot exceed Max students");
     }
     if (btpConfig.minSupervisors > btpConfig.maxSupervisors) {
       return toast.error("Min supervisors cannot exceed Max supervisors");
     }
-    if (btpConfig.crossDepartmentRules.isAllowed && isNaN(btpConfig.crossDepartmentRules.minSameDepartmentStudents)) {
-        return toast.error("Please specify minimum students from same department");
+
+    // Fix: check for empty string / undefined / 0 instead of isNaN on already-coerced value
+    if (
+      btpConfig.crossDepartmentRules?.isAllowed &&
+      (!btpConfig.crossDepartmentRules.minSameDepartmentStudents ||
+        btpConfig.crossDepartmentRules.minSameDepartmentStudents <= 0)
+    ) {
+      return toast.error("Please specify minimum students from same department (must be ≥ 1)");
     }
     
     setIsConfirmOpen(true);
@@ -86,14 +116,29 @@ const BTPConfigPage = () => {
   const handleConfirmUpdate = async () => {
     setSaving(true);
     try {
-      await btpService.updateDepartmentConfig(config._id, { btpConfig: config.btpConfig });
+      // Fix: convert date inputs back to ISO strings before sending to backend
+      const btpConfigPayload = {
+        ...config.btpConfig,
+        groupCreationDeadline:       toISOFromDateInput(config.btpConfig.groupCreationDeadline),
+        supervisorSelectionDeadline: toISOFromDateInput(config.btpConfig.supervisorSelectionDeadline),
+        projectProposalDeadline:     toISOFromDateInput(config.btpConfig.projectProposalDeadline),
+      };
+
+      await btpService.updateDepartmentConfig(config._id, { btpConfig: btpConfigPayload });
       toast.success("Department configuration updated");
+      setOriginalConfig(config); // Fix: update snapshot to reflect saved state
       setIsConfirmOpen(false);
     } catch (err) {
       toast.error(err?.message || "Update failed");
     } finally {
       setSaving(false);
     }
+  };
+
+  // Fix: reset to last saved snapshot
+  const handleReset = () => {
+    setConfig(originalConfig);
+    toast("Changes discarded", { icon: "↩️" });
   };
 
   if (loading) {
@@ -268,11 +313,12 @@ const BTPConfigPage = () => {
                 </div>
 
                 <div className="space-y-6">
+                    {/* Fix: use toDateInput() helper instead of inline .split("T")[0] */}
                     <ConfigInput 
                         type="date" 
                         label="Group Creation" 
                         name="groupCreationDeadline" 
-                        value={config.btpConfig.groupCreationDeadline ? config.btpConfig.groupCreationDeadline.split("T")[0] : ""} 
+                        value={toDateInput(config.btpConfig.groupCreationDeadline)}
                         onChange={handleChange} 
                         disabled={!canEdit} 
                         icon={Clock} 
@@ -281,7 +327,7 @@ const BTPConfigPage = () => {
                         type="date" 
                         label="Supervisor Selection" 
                         name="supervisorSelectionDeadline" 
-                        value={config.btpConfig.supervisorSelectionDeadline ? config.btpConfig.supervisorSelectionDeadline.split("T")[0] : ""} 
+                        value={toDateInput(config.btpConfig.supervisorSelectionDeadline)}
                         onChange={handleChange} 
                         disabled={!canEdit} 
                         icon={Clock} 
@@ -290,7 +336,7 @@ const BTPConfigPage = () => {
                         type="date" 
                         label="Project Proposal" 
                         name="projectProposalDeadline" 
-                        value={config.btpConfig.projectProposalDeadline ? config.btpConfig.projectProposalDeadline.split("T")[0] : ""} 
+                        value={toDateInput(config.btpConfig.projectProposalDeadline)}
                         onChange={handleChange} 
                         disabled={!canEdit} 
                         icon={Clock} 
@@ -300,7 +346,16 @@ const BTPConfigPage = () => {
 
             <div className="lg:col-span-2">
                 {canEdit && (
-                    <div className="mt-4 flex justify-end">
+                    <div className="mt-4 flex justify-end gap-4">
+                        {/* Fix: Reset button to discard changes */}
+                        <button
+                            type="button"
+                            onClick={handleReset}
+                            className="flex items-center gap-3 px-10 py-5 bg-slate-100 text-slate-600 rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
+                        >
+                            <X size={20} />
+                            Discard Changes
+                        </button>
                         <button 
                             type="submit" 
                             disabled={saving}
@@ -315,7 +370,7 @@ const BTPConfigPage = () => {
           </form>
         </div>
 
-        {/* --- CONFIRMATION MODAL --- */}
+        {/* CONFIRMATION MODAL */}
         {isConfirmOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
             <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-white/20">
@@ -330,15 +385,16 @@ const BTPConfigPage = () => {
                     
                     <div className="flex gap-4 mt-10">
                         <button 
-                            onClick={() => setIsConfirmOpen(false)} 
-                            className="flex-1 h-16 bg-slate-50 text-slate-500 rounded-2xl font-black uppercase tracking-widest hover:bg-slate-100 transition-all"
+                            onClick={() => setIsConfirmOpen(false)}
+                            disabled={saving}
+                            className="flex-1 h-16 bg-slate-50 text-slate-500 rounded-2xl font-black uppercase tracking-widest hover:bg-slate-100 transition-all disabled:opacity-50"
                         >
                             Cancel
                         </button>
                         <button 
                             onClick={handleConfirmUpdate} 
                             disabled={saving}
-                            className="flex-1 h-16 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-3"
+                            className="flex-1 h-16 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                         >
                             {saving ? <Loader2 className="animate-spin" /> : "Confirm Update"}
                         </button>

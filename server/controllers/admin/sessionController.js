@@ -263,7 +263,7 @@ export const deactivateSession = async (req, res, next) => {
       if (!session.isActive) {
         return res.status(400).json({
             success: false,
-            message: "Session already active",
+            message: "Session already inactive",
         });
       }
 

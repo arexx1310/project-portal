@@ -97,6 +97,7 @@ const globalLimiter = rateLimit({
     message: "Too many requests, please try again later.",
   },
 });
+
 app.use(globalLimiter);
 
 /* ================= DB + ADMIN ================= */

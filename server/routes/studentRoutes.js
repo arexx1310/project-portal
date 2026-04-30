@@ -39,7 +39,6 @@ router.get("/notifications", getNotifications);
 
 /* ============== GROUP FORMATION AND RESPONSE ============ */
 router.get("/btpconfig",getBTPConfig);
-
 router.get("/group-invites/addmember/:rollNumber",addMember);
 router.post("/group-invites/", createGroupInvite);
 router.get("/group-invites/mine", listMyInvites);

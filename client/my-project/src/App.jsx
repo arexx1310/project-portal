@@ -34,7 +34,7 @@ import StudentProfilePage from "./pages/Student/ProfilePage";
 import ChangePasswordStudent from "./pages/Student/Security";
 import MyGroupPage from "./pages/Student/MyGroupPage";
 import BTPInvitesPage from "./pages/Student/InvitesPage";
-import ProjectProposalPage from "./pages/Student/ProjectProposalPage,";
+import ProjectProposalPage from "./pages/Student/ProjectProposalPage";
 
 // Common
 import NotFoundPage from "./pages/NotFoundPage";
