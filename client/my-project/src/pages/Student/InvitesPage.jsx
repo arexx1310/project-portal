@@ -1,20 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { 
-  Users, 
-  Plus, 
-  ArrowLeft, 
-  Search, 
-  UserPlus, 
-  X, 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
-  ShieldAlert,
-  Calendar,
-  ChevronRight,
-  UserCheck,
-  Send,
-  Trash2
+  Users, Plus, ArrowLeft, Search, UserPlus, X, CheckCircle2, XCircle, 
+  Clock, ShieldAlert, Calendar, ChevronRight, UserCheck, Send, Trash2, Info, Building2
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import btpInviteService from "../../services/Student/btpInviteService";
@@ -38,6 +25,67 @@ const getStatusColor = (status) => {
     default: return "bg-amber-50 text-amber-700 border-amber-100";
   }
 };
+
+
+// ─── Department Policy Banner ──────────────────────────────────────────────
+const DepartmentPolicyBanner = ({ data }) => {
+  if (!data) return null;
+  const { department, btpConfig } = data;
+
+  const infoItems = [
+    { label: "Group Size", value: `${btpConfig.minStudentsPerGroup} - ${btpConfig.maxStudentsPerGroup} Students` },
+    { label: "Supervisors", value: `${btpConfig.minSupervisors} - ${btpConfig.maxSupervisors} per Group` },
+    { label: "Cross-Dept", value: btpConfig.crossDepartmentRules.isAllowed ? `Allowed (Min ${btpConfig.crossDepartmentRules.minSameDepartmentStudents} from ${department.split(' ')[0]})` : "Not Allowed" },
+    { label: "Group Deadline", value: new Date(btpConfig.groupCreationDeadline).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) }
+  ];
+
+  return (
+    <div className="bg-slate-900 rounded-3xl p-6 shadow-xl border border-slate-800 overflow-hidden relative">
+      {/* Aesthetic Background Element */}
+      <div className="absolute top-0 right-0 p-8 opacity-10 text-white pointer-events-none">
+        <ShieldAlert size={120} strokeWidth={1} />
+      </div>
+
+      <div className="relative z-10 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-emerald-500 rounded-lg text-white">
+            <Building2 size={20} />
+          </div>
+          <div>
+            <h3 className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em]">Departmental Protocol</h3>
+            <p className="text-white font-bold text-sm leading-tight">{department}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+          {infoItems.map((item, idx) => (
+            <div key={idx} className="bg-slate-800/50 border border-slate-700 p-3 rounded-2xl">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{item.label}</p>
+              <p className="text-xs font-bold text-slate-100">{item.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Policy Box Component ──────────────────────────────────────────────────
+const PolicyBanner = () => (
+  <div className="bg-white border border-blue-100 rounded-2xl p-5 shadow-sm flex gap-4 items-start">
+    <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+      <Info size={20} />
+    </div>
+    <div className="space-y-1">
+      <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Formation Policies</h3>
+      <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside font-medium">
+        <li>Groups are <span className="text-blue-600 font-bold">Automatically Approved</span> once all invited members accept.</li>
+        <li>You can only have <span className="text-amber-600 font-bold">one active invitation</span> or approved group at a time.</li>
+        <li>Withdrawing an invitation will notify all peers and clear your current slot.</li>
+      </ul>
+    </div>
+  </div>
+);
 
 // ─── MemberSearchRow ───────────────────────────────────────────────────────
 function MemberSearchRow({ member, onRemove }) {
@@ -72,8 +120,8 @@ function CreateInviteForm({ config, onSubmit, onCancel, submitting, submitError 
   const [searchError, setSearchError]     = useState(null);
   const [validationError, setValidationError] = useState(null);
 
-  const min = config?.minStudentsPerGroup ?? 1;
-  const max = config?.maxStudentsPerGroup ?? 4;
+  const min = config?.btpConfig?.minStudentsPerGroup ?? 1;
+  const max = config?.btpConfig?.maxStudentsPerGroup ?? 4;
   const currentTotal = addedMembers.length + 1;
   const canAddMore   = currentTotal < max;
 
@@ -140,7 +188,7 @@ function CreateInviteForm({ config, onSubmit, onCancel, submitting, submitError 
               <div>
                 <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Deadline</p>
                 <p className="text-sm font-bold text-amber-900">
-                  {new Date(config.groupCreationDeadline).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' })}
+                  {new Date(config?.btpConfig?.groupCreationDeadline).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' })}
                 </p>
               </div>
             </div>
@@ -432,7 +480,7 @@ const BTPInvitesPage = () => {
       try {
         setConfigLoading(true);
         const res = await btpInviteService.getBTPConfig();
-        setConfig(res.data?.btpConfig || null);
+        setConfig(res.data || null);
       } catch (err) {
         toast.error(err.message || "Failed to load BTP configuration.");
       } finally {
@@ -455,7 +503,7 @@ const BTPInvitesPage = () => {
 
   useEffect(() => { fetchInvites(); }, [fetchInvites]);
 
-  const deadlinePassed = config?.groupCreationDeadline && new Date() > new Date(config.groupCreationDeadline);
+  const deadlinePassed = config?.btpConfig?.groupCreationDeadline && new Date() > new Date(config?.btpConfig?.groupCreationDeadline);
   const hasActiveInvite = invites.some((inv) => inv.status === "PendingMemberApproval" || inv.status === "Approved");
   
 
@@ -500,7 +548,7 @@ const BTPInvitesPage = () => {
       await fetchInvites();
       if (view === "detail") setView("list");
     } catch (err) {
-      toast.error("Error canceling invite.");
+      toast.error(err.message);
     } finally {
       setSubmitting(false);
       setShowConfirm(false);
@@ -536,6 +584,17 @@ const BTPInvitesPage = () => {
           subtitle="Collaborate with peers to create your research group" 
           icon={Users} 
         />
+
+        {/* Highlighted Policy Box */}
+        {view === "list" && (
+          <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-700">
+            {/* New Department Policy Box */}
+            <DepartmentPolicyBanner data={config} />
+            
+            {/* Existing Formation Policy Box */}
+            <PolicyBanner />
+          </div>
+        )}
 
         {view === "list" && (
           <div className="space-y-6">

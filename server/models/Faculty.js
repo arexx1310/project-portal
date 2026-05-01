@@ -20,9 +20,9 @@ const facultySchema = new mongoose.Schema({
   },
   
   departmentConfig: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "DepartmentConfig",
-      required: true,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "DepartmentConfig",
+    required: true,
   },
 
   roles: { 
@@ -30,24 +30,15 @@ const facultySchema = new mongoose.Schema({
     enum: ["HOD", "BTP_COMMITTEE_HEAD", "BTP_COMMITTEE_MEMBER"], 
     default: [] 
   },
-
-  groupIds: [
-    {
-      type: mongoose.Schema.Types.ObjectId, 
-      ref: 'Group', 
-    }
-  ],
 }, { timestamps: true });
-
-
 
 // Department-wise faculty
 facultySchema.index({ departmentConfig: 1 });
 
-// Role-based queries 
+// Role-based queries
 facultySchema.index({ roles: 1 });
 
-// Department + Role 
+// Department + Role
 facultySchema.index({ departmentConfig: 1, roles: 1 });
 
 export default mongoose.model('Faculty', facultySchema);

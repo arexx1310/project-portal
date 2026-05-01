@@ -149,7 +149,6 @@ export const uploadFaculty = async (req, res, next) => {
         phoneNumber,
         departmentConfig: deptConfig._id,
         roles: [],
-        groupIds: [],
       });
 
       created++;

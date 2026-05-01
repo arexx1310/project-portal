@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import ProjectApprovalRequest from "../../models/ProjectApprovalRequest.js";
 import Group from "../../models/Group.js";
 import Student from "../../models/Student.js";
+import Session from "../../models/Session.js";
 import Faculty from "../../models/Faculty.js";
 import DepartmentConfig from "../../models/DepartmentConfig.js";
 import { sendNotification } from "../notificationController.js";
@@ -20,13 +21,15 @@ export const getAvailableProfessors = async (req, res, next) => {
       });
     }
 
-    // Fetch student to get groupId
+    // 1. Fetch student to get groupId
     const student = await Student.findById(req.student.id)
       .select("groupId")
       .lean();
 
     if (!student) {
-      return res.status(404).json({ success: false, message: "Student profile not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Student profile not found." });
     }
 
     if (!student.groupId) {
@@ -36,28 +39,69 @@ export const getAvailableProfessors = async (req, res, next) => {
       });
     }
 
-    // Fetch group to get all departmentConfigs
+    // 2. Fetch the student's group to get all departmentConfigs
     const group = await Group.findById(student.groupId)
       .select("departmentConfigs")
       .lean();
 
     if (!group || !group.departmentConfigs?.length) {
-      return res.status(404).json({ success: false, message: "Group or department configuration not found." });
+      return res.status(404).json({
+        success: false,
+        message: "Group or department configuration not found.",
+      });
     }
 
-    // Fetch all dept configs + all faculty across group departments in parallel
-    // Each dept has its own btpConfig.maxGroupsPerSupervisor
+    // 3. Fetch dept configs + all faculty across those departments in parallel
     const [deptConfigs, facultyList] = await Promise.all([
       DepartmentConfig.find({ _id: { $in: group.departmentConfigs } })
         .select("_id department btpConfig")
         .lean(),
+
       Faculty.find({ departmentConfig: { $in: group.departmentConfigs } })
-        .select("_id user groupIds departmentConfig")
+        .select("_id user departmentConfig")
         .populate("user", "name -_id")
         .lean(),
     ]);
 
-    // Map deptId → { name, maxGroupsAllowed }
+    if (!facultyList.length) {
+      return res.status(200).json({ success: true, data: {} });
+    }
+
+    // 4. Count active groups per supervisor via aggregation on Group collection.
+    //    "Active" means status is NOT "Closed" — adjust the $match if your
+    //    business logic differs (e.g. only count "Active" status).
+    const facultyIds = facultyList.map((f) => f._id);
+
+    const supervisorGroupCounts = await Group.aggregate([
+      {
+        $match: {
+          supervisors: { $in: facultyIds },
+          status: { $nin: ["Closed"] }, // exclude closed groups from load count
+        },
+      },
+      { $unwind: "$supervisors" },
+      {
+        $match: {
+          supervisors: { $in: facultyIds },
+        },
+      },
+      {
+        $group: {
+          _id: "$supervisors",
+          activeGroupCount: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // 5. Build a Map: facultyId (string) → activeGroupCount
+    const groupCountMap = new Map(
+      supervisorGroupCounts.map((entry) => [
+        String(entry._id),
+        entry.activeGroupCount,
+      ])
+    );
+
+    // 6. Map deptId → { name, maxGroupsAllowed }
     const deptMap = {};
     for (const dc of deptConfigs) {
       deptMap[String(dc._id)] = {
@@ -66,7 +110,7 @@ export const getAvailableProfessors = async (req, res, next) => {
       };
     }
 
-    // Build response keyed by department name
+    // 7. Build response keyed by department name
     const byDepartment = {};
     for (const dc of group.departmentConfigs) {
       const dept = deptMap[String(dc)];
@@ -76,13 +120,17 @@ export const getAvailableProfessors = async (req, res, next) => {
     for (const f of facultyList) {
       const dept = deptMap[String(f.departmentConfig)];
       if (!dept) continue;
-      // Each faculty filtered against their own department's limit
-      if (f.groupIds.length >= dept.maxGroupsAllowed) continue;
+
+      const activeGroups = groupCountMap.get(String(f._id)) ?? 0;
+
+      // Filter out faculty who have reached their department's cap
+      if (activeGroups >= dept.maxGroupsAllowed) continue;
+
       byDepartment[dept.name].push({
         professorId: f._id,
-        name: f.user?.name || null,
-        activeGroups: f.groupIds.length,
-        availableSlots: dept.maxGroupsAllowed - f.groupIds.length,
+        name: f.user?.name ?? null,
+        activeGroups,
+        availableSlots: dept.maxGroupsAllowed - activeGroups,
       });
     }
 
@@ -94,7 +142,6 @@ export const getAvailableProfessors = async (req, res, next) => {
     next(error);
   }
 };
-
 
 /**
  * @desc Submit a project approval request
@@ -218,10 +265,6 @@ export const createProjectApprovalRequest = async (req, res, next) => {
         if (!group.departmentConfigs.some((dc) => dc.equals(s.departmentConfig))) {
           await dbSession.abortTransaction();
           return res.status(400).json({ success: false, message: "All supervisors must belong to one of the group's departments." });
-        }
-        if (s.groupIds.length >= config.maxGroupsPerSupervisor) {
-          await dbSession.abortTransaction();
-          return res.status(400).json({ success: false, message: "One or more supervisors have no available slots." });
         }
       }
  

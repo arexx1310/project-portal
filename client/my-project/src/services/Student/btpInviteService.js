@@ -37,7 +37,7 @@ const btpInviteService = {
     },
 
     cancelInvite: async (id) => {
-        const response = await axiosInstance.patch(API_PATHS.STUDENT.CANCEL_INVITE(id));
+        const response = await axiosInstance.delete(API_PATHS.STUDENT.CANCEL_INVITE(id));
         return response.data;
     },
 

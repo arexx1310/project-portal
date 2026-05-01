@@ -190,6 +190,35 @@ export const createGroupInvite = async (req, res, next) => {
       });
     }
 
+    const totalMembers = uniqueMembers.length + 1;
+
+    if (totalMembers === 1) {
+        // Create group directly (no invites)
+        const [group] = await Group.create(
+          [
+            {
+              name: groupName.trim(),
+              departmentConfigs: [initiator.departmentConfig],
+              session: initiator.session,
+              status: "Formed",
+            },
+          ],
+          { session: dbSession }
+        );
+
+        // Assign group to initiator
+        initiator.groupId = group._id;
+        initiator.isAvailableForInvite = false;
+        await initiator.save({ session: dbSession });
+
+        await dbSession.commitTransaction();
+
+        return res.status(201).json({
+          success: true,
+          message: "Group created successfully with only initiator.",
+        });
+    }
+
     // ================= 4. Fetch Members =================
     const members = await Student.find({ _id: { $in: uniqueMembers } })
       .populate("user", "_id role")
@@ -253,8 +282,7 @@ export const createGroupInvite = async (req, res, next) => {
     }
 
     // ================= 7. Group Size =================
-    const totalMembers = uniqueMembers.length + 1;
-
+  
     if (
       totalMembers < initiatorConfig.minStudentsPerGroup ||
       totalMembers > initiatorConfig.maxStudentsPerGroup
@@ -265,7 +293,6 @@ export const createGroupInvite = async (req, res, next) => {
         message: `Group size must be between ${initiatorConfig.minStudentsPerGroup} and ${initiatorConfig.maxStudentsPerGroup}.`,
       });
     }
-
     // ================= 8. Cross-Dept Validation =================
     const deptCounts = {};
     deptCounts[initiatorDeptId] = 1;
@@ -298,7 +325,7 @@ export const createGroupInvite = async (req, res, next) => {
         });
       }
 
-      if (crossRules?.isAllowed) {
+      if (crossRules?.isAllowed && totalMembers>1) {
         const minSame = crossRules.minSameDepartmentStudents;
         if (count < minSame) {
           await dbSession.abortTransaction();

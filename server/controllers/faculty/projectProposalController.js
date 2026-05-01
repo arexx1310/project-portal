@@ -211,7 +211,7 @@ export const respondToRequest = async (req, res, next) => {
         "supervisorInvites.faculty": req.faculty.id,
       }).session(dbSession),
       Faculty.findById(req.faculty.id)
-        .select("_id departmentConfig groupIds")
+        .select("_id departmentConfig")
         .populate("user", "_id role")
         .session(dbSession),
     ]);
@@ -273,13 +273,22 @@ export const respondToRequest = async (req, res, next) => {
       return res.status(200).json({ success: true, message: "Project approval request rejected." });
     }
 
-    // ── Acceptance ────────────────────────────────────────────────────────────
-    if (
-      deptConfig?.btpConfig?.maxGroupsPerSupervisor &&
-      faculty.groupIds.length >= deptConfig.btpConfig.maxGroupsPerSupervisor
-    ) {
-      await dbSession.abortTransaction();
-      return res.status(400).json({ success: false, message: "You have reached your maximum group limit and cannot accept more." });
+    // ── Acceptance — check supervisor group cap ────────────────────────────────
+    if (deptConfig?.btpConfig?.maxGroupsPerSupervisor) {
+      // Count how many groups in the active session this faculty already supervises
+      const activeSession = await Session.getActiveSession();
+      const currentGroupCount = await Group.countDocuments({
+        supervisors: faculty._id,
+        session: activeSession?._id,
+      });
+
+      if (currentGroupCount >= deptConfig.btpConfig.maxGroupsPerSupervisor) {
+        await dbSession.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: "You have reached your maximum group limit and cannot accept more.",
+        });
+      }
     }
 
     slot.status = "Accepted";
@@ -334,17 +343,17 @@ export const respondToRequest = async (req, res, next) => {
     const saves = [request.save({ session: dbSession })];
 
     if (request.project.semester === 7) {
+      // Add supervisors to group — Group.supervisors is the single source of truth
       saves.push(
         Group.findByIdAndUpdate(
           request.group,
-          { $set: { status: "Active" }, $addToSet: { supervisors: { $each: supervisorIds } } },
-          { session: dbSession }
-        ),
-        Faculty.updateMany(
-          { _id: { $in: supervisorIds } },
-          { $addToSet: { groupIds: request.group } },
+          {
+            $set: { status: "Active" },
+            $addToSet: { supervisors: { $each: supervisorIds } },
+          },
           { session: dbSession }
         )
+        // No Faculty.groupIds update needed — removed from schema
       );
     }
 

@@ -41,7 +41,6 @@ export const getMyGroups = async (req, res, next) => {
         });
       }
     } else {
-      // Default to active session if no sessionId provided
       resolvedSession = await Session.getActiveSession();
       if (!resolvedSession) {
         return res.status(404).json({
@@ -51,26 +50,10 @@ export const getMyGroups = async (req, res, next) => {
       }
     }
 
-    const faculty = await Faculty.findById(req.faculty.id)
-      .select("groupIds")
-      .lean();
+    const facultyId = new mongoose.Types.ObjectId(req.faculty.id);
 
-    if (!faculty || faculty.groupIds.length === 0) {
-      return res.status(200).json({
-        success: true,
-        session: {
-          _id: resolvedSession._id,
-          name: resolvedSession.name,
-          academicYear: resolvedSession.academicYear,
-        },
-        count: 0,
-        data: [],
-      });
-    }
-
-    // Filter faculty's groups by the resolved session
     const groups = await Group.find({
-      _id: { $in: faculty.groupIds },
+      supervisors: facultyId,
       session: resolvedSession._id,
     })
       .select("name status supervisors")
@@ -140,46 +123,167 @@ export const getMyGroups = async (req, res, next) => {
   }
 };
 
+// /**
+//  * @desc Get all projects for groups supervised by the faculty
+//  * @route GET /api/faculty/projects?semester=7|8
+//  * @access Private (attachFacultyProfile middleware required)
+//  */
+// export const getMyProjects = async (req, res, next) => {
+//   try {
+//     if (!req.faculty || !req.faculty.id) {
+//       return res.status(403).json({
+//         success: false,
+//         message: "Unauthorized: Faculty profile not attached",
+//       });
+//     }
+
+//     const facultyId = new mongoose.Types.ObjectId(req.faculty.id);
+
+//     // Resolve the active session so we scope to current groups only
+//     const activeSession = await Session.getActiveSession();
+//     if (!activeSession) {
+//       return res.status(200).json({ success: true, count: 0, data: [] });
+//     }
+
+//     // Find groups this faculty supervises in the active session
+//     const supervisedGroups = await Group.find({
+//       supervisors: facultyId,
+//       session: activeSession._id,
+//     })
+//       .select("_id")
+//       .lean();
+
+//     if (supervisedGroups.length === 0) {
+//       return res.status(200).json({ success: true, count: 0, data: [] });
+//     }
+
+//     const groupIds = supervisedGroups.map((g) => g._id);
+
+//     const { semester } = req.query; // optional filter: 7 or 8
+//     const query = { group: { $in: groupIds } };
+
+//     if (semester && [7, 8].includes(Number(semester))) {
+//       query.semester = Number(semester);
+//     }
+
+//     const projects = await Project.find(query)
+//       .select("title domain semester status group session createdAt")
+//       .populate("group", "name")
+//       .populate("session", "name year -_id")
+//       .sort({ createdAt: -1 })
+//       .lean();
+
+//     return res.status(200).json({
+//       success: true,
+//       count: projects.length,
+//       data: projects,
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+
 /**
- * @desc Get all projects for groups supervised by the faculty
- * @route GET /api/faculty/projects
- * @access Private (attachFacultyProfile middleware required)
+ * @desc    Get full group details with students and projects
+ * @route   GET /api/faculty/managegroup/groups/:groupId
+ * @access  Private (Faculty only)
  */
-export const getMyProjects = async (req, res, next) => {
+export const getFullGroupDetails = async (req, res, next) => {
   try {
+    const { groupId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid group ID.",
+      });
+    }
+
     if (!req.faculty || !req.faculty.id) {
-      return res.status(403).json({
+      return res.status(401).json({
         success: false,
         message: "Unauthorized: Faculty profile not attached",
       });
     }
 
-    const faculty = await Faculty.findById(req.faculty.id)
-      .select("groupIds")
+    const facultyId = new mongoose.Types.ObjectId(req.faculty.id);
+
+    // Authorization: faculty must be a supervisor of this group
+    const group = await Group.findOne({
+      _id: groupId,
+      supervisors: facultyId,
+    })
+      .select("_id name departmentConfigs status supervisors session")
+      .populate({ path: "departmentConfigs", select: "department -_id" })
+      .populate({ path: "session", select: "name academicYear -_id" })
+      .populate({
+        path: "supervisors",
+        select: "phoneNumber user",
+        populate: {
+          path: "user",
+          select: "name email -_id",
+        },
+      })
       .lean();
 
-    if (!faculty || faculty.groupIds.length === 0) {
-      return res.status(200).json({ success: true, count: 0, data: [] });
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        message: "Group not found or not authorized.",
+      });
     }
 
-    const { semester } = req.query; // optional filter: 7 or 8
-    const query = { group: { $in: faculty.groupIds } };
+    const supervisors = group.supervisors.map((s) => ({
+      name: s.user?.name || null,
+      email: s.user?.email || null,
+      phoneNumber: s.phoneNumber,
+    }));
 
-    if (semester && [7, 8].includes(Number(semester))) {
-      query.semester = Number(semester);
-    }
+    const [students, projects] = await Promise.all([
+      Student.find({ groupId: group._id })
+        .select("rollNumber phoneNumber specialization semester departmentConfig user")
+        .populate({ path: "user", select: "name email -_id" })
+        .populate({ path: "departmentConfig", select: "department -_id" })
+        .lean(),
 
-    const projects = await Project.find(query)
-      .select("title domain semester status group session createdAt")
-      .populate("group", "name")
-      .populate("session", "name year -_id")
-      .sort({ createdAt: -1 })
-      .lean();
+      Project.find({ group: group._id })
+        .populate({ path: "session", select: "name academicYear -_id" })
+        .lean(),
+    ]);
+
+    const departmentStrings = (group.departmentConfigs || []).map((d) => d.department);
 
     return res.status(200).json({
       success: true,
-      count: projects.length,
-      data: projects,
+      data: {
+        group: {
+          _id: group._id,
+          name: group.name,
+          departments: departmentStrings,
+          session: group.session,
+          status: group.status,
+        },
+        students: students.map((student) => ({
+          username: student.user?.name,
+          email: student.user?.email,
+          rollNumber: student.rollNumber,
+          department: student.departmentConfig?.department,
+          specialization: student.specialization,
+          semester: student.semester,
+          phoneNumber: student.phoneNumber,
+        })),
+        project: projects.map((project) => ({
+          _id: project._id,
+          title: project.title,
+          description: project.description,
+          domain: project.domain,
+          semester: project.semester,
+          status: project.status,
+          session: project.session,
+        })),
+        supervisors,
+      },
     });
   } catch (error) {
     next(error);
@@ -187,110 +291,3 @@ export const getMyProjects = async (req, res, next) => {
 };
 
 
-/**
- * @desc    Get full group details with students
- * @route   GET /api/faculty/managegroup/groups/:groupId
- * @access  Private (Faculty only)
- */
-export const getFullGroupDetails = async (req, res, next) => {
-    try {
-        const { groupId } = req.params;
-
-        // Validate ObjectId
-        if (!mongoose.Types.ObjectId.isValid(groupId)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid group ID."
-            });
-        }
-
-        // Get Faculty
-        if (!req.faculty || !req.faculty.id) {
-            return res.status(401).json({
-                success: false,
-                message: "Unauthorized: Faculty profile not attached",
-            });
-        }
-
-        const facultyId = new mongoose.Types.ObjectId(req.faculty.id);
-
-        // Fetch Group (Authorization Check Included)
-        const group = await Group.findOne({
-                _id: groupId,
-                supervisors: facultyId
-            })
-            .select("_id name departmentConfigs status supervisors session")
-            .populate({ path: "departmentConfigs", select: "department -_id" })
-            .populate({ path: "session", select: "name academicYear -_id" })
-            .populate({
-              path: "supervisors",
-              select: "phoneNumber user",
-              populate: {
-                path: "user",
-                select: "name email -_id"
-              }
-            })
-            .lean();
-
-        if (!group) {
-            return res.status(404).json({
-                success: false,
-                message: "Group not found or not authorized."
-            });
-        }
-
-        const supervisors = group.supervisors.map(s => ({
-          name: s.user?.name || null,
-          email: s.user?.email || null,
-          phoneNumber: s.phoneNumber
-        }));
-
-        const students = await Student.find({ groupId: group._id })
-            .select("rollNumber phoneNumber specialization semester departmentConfig user")
-            .populate({ path: "user", select: "name email -_id" })
-            .populate({ path: "departmentConfig", select: "department -_id" })
-            .lean();
-
-        const projects = await Project.find({ group: group._id })
-            .populate({ path: "session", select: "name academicYear -_id" })
-            .lean();
-
-        // Transform departments to array of strings
-        const departmentStrings = (group.departmentConfigs || []).map(dept => dept.department);
-
-        return res.status(200).json({
-            success: true,
-            data: {
-                group: {
-                    _id: group._id,
-                    name: group.name,
-                    departments: departmentStrings, // Now returns ["ELECTRONICS AND COMMUNICATIONS"]
-                    session: group.session,
-                    status: group.status
-                },
-                students: students.map(student => ({
-                    username: student.user?.name,
-                    email: student.user?.email,
-                    rollNumber: student.rollNumber,
-                    department: student.departmentConfig?.department,
-                    specialization: student.specialization,
-                    semester: student.semester,
-                    phoneNumber: student.phoneNumber
-                })),
-                project: projects.map(project => ({
-                    _id: project._id,
-                    title: project.title,
-                    description: project.description,
-                    domain: project.domain,
-                    semester: project.semester,
-                    status: project.status,
-                    session: project.session
-                })),
-                supervisors
-            }
-        });
-
-    } catch (error) {
-        next(error);
-    }
-};

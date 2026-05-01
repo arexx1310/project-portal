@@ -17,7 +17,6 @@ import { authorizeFacultyRoles, attachFacultyProfile } from "../middleware/facul
 
 import {
   getMyGroups,
-  getMyProjects,
   getFullGroupDetails,
 } from "../controllers/faculty/supervisedGroupsController.js";
 import { exportUngroupedStudentsExcel, exportUnsupervisedGroupsExcel, exportFullGroupsDataExcel } from "../controllers/faculty/manageDepartmentController.js";

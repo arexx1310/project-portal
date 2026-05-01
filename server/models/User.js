@@ -1,15 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
-
-/*
-  User Schmea :
-
-  Stores users's name, email, password, role (faculty, student, admin), activeFlag
-
-  bcrypt is used to hash password and match password
-
-**/
 const userSchema = new mongoose.Schema({
   name: { 
     type: String, 

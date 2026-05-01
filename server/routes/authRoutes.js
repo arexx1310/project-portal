@@ -74,11 +74,5 @@ router.post("/logout", logout);
  */
 router.get("/me", protect, getMe);
 
-/**
- * GET SOCKET TOKEN
- * Returns a short-lived JWT for Socket.IO authentication.
- * The client calls this after login, instead of storing the main token.
- */
-// router.get("/socket-token", protect, getSocketToken);
 
 export default router;
