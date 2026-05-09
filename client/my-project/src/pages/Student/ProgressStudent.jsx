@@ -220,16 +220,16 @@ const StudentWorkManager = ({ projectId }) => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // When a new update is submitted it goes to the top (page 1)
+  
   const handleUpdateAdded = (newItem) => {
     setShowAddModal(false);
-    // Refresh page 1 so the new item appears with correct pagination metadata
+    
     setCurrentPage(1);
     fetchData(1);
   };
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-slate-50 to-blue-50/30">
+    <div className="min-h-screen p-3 bg-gradient-to-br from-slate-50 to-blue-50/30">
       {/* Header Section */}
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>

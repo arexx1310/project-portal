@@ -12,12 +12,12 @@ const facultyProjectService = {
     return res.data;
   },
 
-  updateProject: async (projectId, updateData) => {
-    const res = await axiosInstance.patch(
-      API_PATHS.FACULTY.UPDATE_PROJECT(projectId),
+  editProjectDetails: async (projectId,updateData) => {
+      const response = await axiosInstance.patch(
+      API_PATHS.FACULTY.EDIT_PROJECT_DETAILS(projectId),
       updateData
     );
-    return res.data;
+    return response.data;
   },
 
   /* ============== TASKS ============ */

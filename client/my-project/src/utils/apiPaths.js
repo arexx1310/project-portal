@@ -48,9 +48,22 @@ export const API_PATHS = {
     GET_DEPT_CONFIG: "/api/faculty/config",
     UPDATE_BTP_CONFIG: (departmentId) => `/api/faculty/config/${departmentId}/btp`,
     UPDATE_MTP_CONFIG: (departmentId) => `/api/faculty/config/${departmentId}/mtp`,
+    GENERATE_UG_STATUS_REPORT:   (sessionId) =>
+      `/api/faculty/reports/ug/${sessionId}/status`,
+
+    GENERATE_UG_PROJECT_REPORT:  (sessionId, semester) =>
+      `/api/faculty/reports/ug/${sessionId}/projects?semester=${semester}`,
+
+    GENERATE_PG_STATUS_REPORT:   (sessionId) =>
+      `/api/faculty/reports/pg/${sessionId}/status`,
+
+    GENERATE_PG_PROJECT_REPORT:  (sessionId, semester) =>
+      `/api/faculty/reports/pg/${sessionId}/projects?semester=${semester}`,
 
     /* ============== SESSIONS ============ */
     GET_SESSIONS: "/api/faculty/sessions",
+
+
 
     /* ============== PROJECT PROPOSALS ============ */
     GET_MY_REQUESTS: "/api/faculty/project-proposal/my-requests",
@@ -73,7 +86,7 @@ export const API_PATHS = {
     /* ============== PROJECTS ============ */
     GET_PROJECT_BY_ID: (projectId) =>
       `/api/faculty/projects/${projectId}`,
-    UPDATE_PROJECT: (projectId) =>
+    EDIT_PROJECT_DETAILS: (projectId) =>
       `/api/faculty/projects/${projectId}`,
 
     /* ============== TASKS ============ */
@@ -153,6 +166,9 @@ export const API_PATHS = {
     GET_PROJECT_DETAILS: (projectId) =>
       `/api/student/projects/${projectId}`,
 
+    EDIT_PROJECT_DETAILS: (projectId) =>
+      `/api/student/projects/${projectId}`,
+
     /* Weekly Updates */
     SUBMIT_WEEKLY_UPDATE: (projectId) =>
       `/api/student/projects/${projectId}/weekly-updates`,
@@ -186,8 +202,5 @@ export const API_PATHS = {
 
   },
 
-    
-
-    
-
+  
 };

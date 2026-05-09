@@ -31,7 +31,7 @@ import {
 } from "../controllers/student/projectController1.js";
 
 import { getGroupDetails} from "../controllers/common/groupControllers.js";
-import { getProjectById } from "../controllers/common/projectController.js";
+import { editProject, getProjectById } from "../controllers/common/projectController.js";
 
 import {
   getProjectRequestDetails,
@@ -88,6 +88,7 @@ router.delete("/project-proposal/:inviteId",cancelProjectRequest);
 /* ============== ALL PROJECT DETAILS AND UPDATES ============ */
 router.get("/projects/my-projects",getMyProjects);
 router.get("/projects/:projectId",getProjectById);
+router.patch("/projects/:projectId",editProject);
 router.post("/projects/:projectId/weekly-updates",submitWeeklyUpdate);
 router.put("/projects/:projectId/weekly-updates/:itemId",editWeeklyUpdate);
 router.get("/projects/:projectId/weekly-updates",getWeeklyUpdates);
@@ -102,7 +103,8 @@ router.post("/projects/:projectId/publications",                         createP
 router.patch("/projects/:projectId/publications/:publicationId",         updatePublication);
 router.delete("/projects/:projectId/publications/:publicationId",        deletePublication);
 router.post("/projects/:projectId/publications/:publicationId/remarks",  addRemark);
- 
+
+
 
 /* ============== ONLY FOR PG STUDENTS ============ */
 router.use(requireProgram("PG"));

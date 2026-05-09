@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import axios from "axios";
 import Publication from "../../models/Publication.js";
 import Project from "../../models/Project.js";
 import Group from "../../models/Group.js";
@@ -16,7 +17,7 @@ import Student from "../../models/Student.js";
  * Returns { groupId, isSupervisor } or null if the caller has no
  * recognised profile attached.
  */
-const resolveCallerContext = (req) => {
+export const resolveCallerContext = (req) => {
   if (req.student) {
     return { groupId: req.student.groupId ?? null, isSupervisor: false };
   }
@@ -37,7 +38,7 @@ const resolveCallerContext = (req) => {
  *
  * @returns true if authorised, false otherwise.
  */
-const isAuthorisedForGroup = (caller, group) => {
+export const isAuthorisedForGroup = (caller, group) => {
   if (!caller || !group) return false;
 
   if (!caller.isSupervisor) {
@@ -269,12 +270,28 @@ export const createPublication = async (req, res, next) => {
 =============================================================== */
 
 /**
- * @desc    Update core fields of a publication (not remarks — use addRemark)
+ * @desc    Update publication details
  * @route   PATCH /api/student/projects/:projectId/publications/:publicationId
  * @route   PATCH /api/faculty/projects/:projectId/publications/:publicationId
  * @access  Private — group members or supervisors only
  *
- * Allowed body fields: title, abstract, authors, status, conference, published
+ * Editable fields:
+ * - abstract
+ * - status
+ * - conference
+ * - remarks
+ * - published.doi
+ *
+ * If DOI is provided:
+ * - Fetches metadata from CrossRef
+ * - Auto updates:
+ *   - title
+ *   - authors
+ *   - conference.name
+ *   - published.link
+ *   - published.publishedDate
+ *   - published.venue
+ *   - published.publisher
  */
 export const updatePublication = async (req, res, next) => {
   try {
@@ -284,56 +301,199 @@ export const updatePublication = async (req, res, next) => {
       !mongoose.Types.ObjectId.isValid(projectId) ||
       !mongoose.Types.ObjectId.isValid(publicationId)
     ) {
-      return res.status(400).json({ success: false, message: "Invalid ID(s)." });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ID(s).",
+      });
     }
 
     const caller = resolveCallerContext(req);
+
     if (!caller) {
-      return res.status(401).json({ success: false, message: "Unauthorized." });
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized.",
+      });
     }
 
-    /* ── Fetch project ───────────────────────────────────────────────────── */
-    const project = await Project.findById(projectId).select("group session").lean();
+    /* ── Fetch project ───────────────────────────────────────── */
+
+    const project = await Project.findById(projectId)
+      .select("group session")
+      .lean();
 
     if (!project) {
-      return res.status(404).json({ success: false, message: "Project not found." });
+      return res.status(404).json({
+        success: false,
+        message: "Project not found.",
+      });
     }
 
-    /* ── Parallel fetch: group + publication ─────────────────────────────── */
-    const group = await Group.findById(project.group).select("supervisors").lean();
-    const publication = await Publication.findOne({ _id: publicationId, project: projectId });
+    /* ── Fetch group + publication ──────────────────────────── */
+
+    const [group, publication] = await Promise.all([
+      Group.findById(project.group).select("supervisors").lean(),
+
+      Publication.findOne({
+        _id: publicationId,
+        project: projectId,
+      }),
+    ]);
 
     if (!group) {
-      return res.status(404).json({ success: false, message: "Group not found." });
+      return res.status(404).json({
+        success: false,
+        message: "Group not found.",
+      });
+    }
+
+    if (!publication) {
+      return res.status(404).json({
+        success: false,
+        message: "Publication not found.",
+      });
     }
 
     if (!isAuthorisedForGroup(caller, group)) {
       return res.status(403).json({
         success: false,
-        message: "Access denied. You are not a member or supervisor of this group.",
+        message:
+          "Access denied. You are not a member or supervisor of this group.",
       });
     }
 
-    if (!publication) {
-      return res.status(404).json({ success: false, message: "Publication not found." });
-    }
+    /* ── Lock published / withdrawn publications ────────────── */
 
-    /* ── Guard: Withdrawn / Published records are locked ─────────────────── */
-    if (["Withdrawn", "Published"].includes(publication.status)) {
+    if (["Withdrawn"].includes(publication.status)) {
       return res.status(400).json({
         success: false,
         message: `Publication with status "${publication.status}" cannot be edited.`,
       });
     }
 
-    /* ── Apply only the fields that were actually sent ───────────────────── */
-    const ALLOWED_FIELDS = ["title", "abstract", "authors", "status", "conference", "published"];
+    /* ── Editable manual fields ─────────────────────────────── */
 
-    for (const field of ALLOWED_FIELDS) {
-      if (req.body[field] !== undefined) {
-        publication[field] = req.body[field];
+    const { abstract, status, conference, remarks, published } = req.body;
+
+    if (abstract !== undefined) {
+      publication.abstract = abstract;
+    }
+
+    if (status !== undefined) {
+      publication.status = status;
+    }
+
+    if (conference !== undefined) {
+      publication.conference = {
+        ...publication.conference?.toObject?.(),
+        ...conference,
+      };
+    }
+
+    if (remarks !== undefined) {
+      publication.remarks = remarks;
+    }
+
+    /* ── DOI metadata fetch ─────────────────────────────────── */
+
+    const doi = published?.doi?.trim();
+
+    if (doi) {
+      try {
+        const response = await axios.get(
+          `https://api.crossref.org/works/${encodeURIComponent(doi)}`
+        );
+
+        const work = response.data?.message;
+
+        if (!work) {
+          return res.status(404).json({
+            success: false,
+            message: "DOI metadata not found.",
+          });
+        }
+
+        /* ── Authors ───────────────────────────────────────── */
+
+        const authors = Array.isArray(work.author)
+          ? work.author.map((author) => {
+              return [author.given, author.family]
+                .filter(Boolean)
+                .join(" ")
+                .trim();
+            })
+          : [];
+
+        /* ── Published date ────────────────────────────────── */
+
+        let publishedDate = null;
+
+        const publishedParts =
+          work.created?.["date-parts"]?.[0] ||
+          work.published?.["date-parts"]?.[0] ||
+          work.issued?.["date-parts"]?.[0];
+
+        if (publishedParts) {
+          const [year, month = 1, day = 1] = publishedParts;
+
+          publishedDate = new Date(year, month - 1, day);
+        }
+
+        /* ── Conference / venue name ───────────────────────── */
+
+        const venue =
+          work["container-title"]?.[0] || null;
+
+        const conferenceName =
+          work.event?.name || venue || null;
+
+        /* ── Paper URL ─────────────────────────────────────── */
+
+        const paperUrl =
+          work.resource?.primary?.URL ||
+          work.URL ||
+          null;
+
+        /* ── Update publication fields ────────────────────── */
+
+        publication.title =
+          work.title?.[0] || publication.title;
+
+        publication.authors = authors;
+
+        publication.conference = {
+          ...publication.conference?.toObject?.(),
+
+          name: conferenceName,
+        };
+
+        publication.published = {
+          ...publication.published?.toObject?.(),
+
+          doi,
+
+          link: paperUrl,
+
+          publishedDate,
+
+          venue,
+
+          publisher: work.publisher || null,
+        };
+
+        /* ── Auto status update ───────────────────────────── */
+
+        publication.status = "Published";
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: "Failed to fetch DOI metadata.",
+          
+        });
       }
     }
+
+    /* ── Save ─────────────────────────────────────────────── */
 
     await publication.save();
 

@@ -122,17 +122,25 @@ const publicationSchema = new mongoose.Schema(
         trim: true,
         default: null,
       },
+
       link: {
         type: String,
         trim: true,
         default: null,
       },
+
       publishedDate: {
         type: Date,
         default: null,
       },
-      // Could be "IEEE TRANSACTIONS ON …" or "ICSE 2025 Proceedings", etc.
+
       venue: {
+        type: String,
+        trim: true,
+        default: null,
+      },
+
+      publisher: {
         type: String,
         trim: true,
         default: null,

@@ -16,7 +16,7 @@ const FeedbackForm = ({ projectId, itemId, onClose, onSuccess }) => {
     try {
       const res = await facultyProjectService.addFeedback(projectId, itemId, { comment });
       if (res.success) {
-        onSuccess(res.data); // res.data is the new feedback object
+        onSuccess(res.data); 
         onClose();
       }
     } catch (err) {
@@ -184,80 +184,82 @@ const SubmissionForm = ({ projectId, itemId, data, taskTitle, onClose, onSuccess
   };
 
   return (
-    <div className="bg-white rounded-2xl w-full shadow-2xl border border-blue-100 overflow-hidden animate-in fade-in zoom-in duration-200">
-      {/* Header: Adjusted padding for mobile */}
-      <div className="bg-blue-600 p-4 md:p-6">
-        <p className="text-blue-100 text-[10px] md:text-xs font-bold uppercase tracking-widest">Submit Work For:</p>
-        <h2 className="text-lg md:text-xl font-bold text-white truncate leading-tight">
-          {taskTitle}
-        </h2>
-      </div>
-
-      <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-5 md:space-y-6">
-        {/* Submission Text */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Submission Details</label>
-          <textarea
-            required
-            className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none h-32 md:h-40 bg-gray-50 transition-all text-sm md:text-base"
-            value={formData.text}
-            onChange={(e) => setFormData({ ...formData, text: e.target.value })}
-            placeholder="Describe the progress you've made..."
-          />
+     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+        {/* Header: Adjusted padding for mobile */}
+        <div className="bg-blue-600 p-4 md:p-6">
+          <p className="text-blue-100 text-[10px] md:text-xs font-bold uppercase tracking-widest">Submit Work For:</p>
+          <h2 className="text-lg md:text-xl font-bold text-white truncate leading-tight">
+            {taskTitle}
+          </h2>
         </div>
 
-        {/* Links Section: Responsive Grid */}
-        <div className="space-y-3">
-          <label className="block text-sm font-semibold text-gray-700">Relevant Links</label>
-          <div className="space-y-4 md:space-y-3">
-            {formData.links.map((link, index) => (
-              <div 
-                key={index} 
-                className="flex flex-col md:flex-row gap-2 md:gap-3 p-3 md:p-0 bg-gray-50 md:bg-transparent rounded-xl md:rounded-none border md:border-none border-gray-100 animate-in slide-in-from-left-2"
-              >
-                <input
-                  placeholder="Label (e.g. GitHub)"
-                  className="w-full md:flex-1 p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                  value={link.label}
-                  onChange={(e) => handleLinkChange(index, 'label', e.target.value)}
-                />
-                <input
-                  placeholder="URL (https://...)"
-                  className="w-full md:flex-[2] p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                  value={link.url}
-                  onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
-                />
-              </div>
-            ))}
+        <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-5 md:space-y-6">
+          {/* Submission Text */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Submission Details</label>
+            <textarea
+              required
+              className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none h-32 md:h-40 bg-gray-50 transition-all text-sm md:text-base"
+              value={formData.text}
+              onChange={(e) => setFormData({ ...formData, text: e.target.value })}
+              placeholder="Describe the progress you've made..."
+            />
           </div>
-          
-          <button 
-            type="button" 
-            onClick={handleAddLink} 
-            className="w-full md:w-auto text-sm text-blue-600 font-bold hover:text-blue-800 transition py-2 flex items-center justify-center md:justify-start gap-1"
-          >
-            <span className="text-lg">+</span> Add another link
-          </button>
-        </div>
 
-        {/* Action Buttons: Stacked on mobile, side-by-side on desktop */}
-        <div className="flex flex-col-reverse md:flex-row gap-3 md:gap-4 pt-4">
-          <button 
-            type="button" 
-            onClick={onClose} 
-            className="w-full py-3 md:py-3.5 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition text-sm md:text-base"
-          >
-            Go Back
-          </button>
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full py-3 md:py-3.5 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:bg-blue-300 transition-all text-sm md:text-base"
-          >
-            {loading ? "Processing..." : (data?.submission ? "Update Submission" : "Confirm Submission")}
-          </button>
-        </div>
-      </form>
+          {/* Links Section: Responsive Grid */}
+          <div className="space-y-3">
+            <label className="block text-sm font-semibold text-gray-700">Relevant Links</label>
+            <div className="space-y-4 md:space-y-3">
+              {formData.links.map((link, index) => (
+                <div 
+                  key={index} 
+                  className="flex flex-col md:flex-row gap-2 md:gap-3 p-3 md:p-0 bg-gray-50 md:bg-transparent rounded-xl md:rounded-none border md:border-none border-gray-100 animate-in slide-in-from-left-2"
+                >
+                  <input
+                    placeholder="Label (e.g. GitHub)"
+                    className="w-full md:flex-1 p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                    value={link.label}
+                    onChange={(e) => handleLinkChange(index, 'label', e.target.value)}
+                  />
+                  <input
+                    placeholder="URL (https://...)"
+                    className="w-full md:flex-[2] p-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                    value={link.url}
+                    onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
+                  />
+                </div>
+              ))}
+            </div>
+            
+            <button 
+              type="button" 
+              onClick={handleAddLink} 
+              className="w-full md:w-auto text-sm text-blue-600 font-bold hover:text-blue-800 transition py-2 flex items-center justify-center md:justify-start gap-1"
+            >
+              <span className="text-lg">+</span> Add another link
+            </button>
+          </div>
+
+          {/* Action Buttons: Stacked on mobile, side-by-side on desktop */}
+          <div className="flex flex-col-reverse md:flex-row gap-3 md:gap-4 pt-4">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="w-full py-3 md:py-3.5 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition text-sm md:text-base"
+            >
+              Go Back
+            </button>
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full py-3 md:py-3.5 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:bg-blue-300 transition-all text-sm md:text-base"
+            >
+              {loading ? "Processing..." : (data?.submission ? "Update Submission" : "Confirm Submission")}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
@@ -303,7 +305,8 @@ const WeekUpdateForm = ({ projectId, itemId, data, onClose, onSuccess, weekNumbe
     }
 
     return (
-    <div className="bg-white rounded-2xl w-full shadow-2xl border border-blue-100 overflow-hidden animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
       {/* Header: Adjusted padding for mobile */}
       <div className="bg-blue-600 p-4 md:p-6">
         <p className="text-blue-100 text-[10px] md:text-xs font-bold uppercase tracking-widest">Update Weekly Progress For</p>
@@ -378,6 +381,7 @@ const WeekUpdateForm = ({ projectId, itemId, data, onClose, onSuccess, weekNumbe
         </div>
       </form>
     </div>
+    </div>
   );
 } 
 
@@ -436,20 +440,7 @@ const WorkItemCard = ({ item, isFaculty, projectId , onDelete}) => {
       }));
   };
 
-  if (isSubmissionFormOpen) {
-    return (
-      <div className="mb-6"> 
-        <SubmissionForm
-          projectId={projectId}
-          itemId={data._id}
-          data={data}
-          taskTitle={isWeeklyUpdate ? `Week ${data.weekNumber} Update` : data.title} // Passing title
-          onClose={() => setIsSubmissionFormOpen(false)}
-          onSuccess={handleSubmissionSuccess}
-        />
-      </div>
-    );
-  }
+  
 
   const handleEditUpdateSuccess = (updatedData) => {
       setData((prev) => ({
@@ -459,24 +450,10 @@ const WorkItemCard = ({ item, isFaculty, projectId , onDelete}) => {
       }));
   };
 
-  if (isWeekUpdateFormOpen) {
-      return (
-        <div className="mb-6"> 
-        <WeekUpdateForm
-          projectId={projectId}
-          itemId={data._id}
-          data={data}
-          onClose={() => setIsWeekUpdateFormOpen(false)}
-          onSuccess={handleEditUpdateSuccess}
-          weekNumber={data.weekNumber}
-        />
-      </div>
-      )
-  }
 
   return (
   <>
-    <div className="relative overflow-hidden bg-white/60 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl p-4 sm:p-6 transition-all hover:shadow-2xl mb-6">
+    <div className="relative overflow-hidden bg-white/60 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl p-3 sm:p-6 transition-all hover:shadow-2xl mb-6">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
         <div className="w-full sm:w-auto">
@@ -659,6 +636,32 @@ const WorkItemCard = ({ item, isFaculty, projectId , onDelete}) => {
         onSuccess={handleEditTaskSuccess}
       />
     )}
+
+    {isWeekUpdateFormOpen && ( 
+        <WeekUpdateForm
+          projectId={projectId}
+          itemId={data._id}
+          data={data}
+          onClose={() => setIsWeekUpdateFormOpen(false)}
+          onSuccess={handleEditUpdateSuccess}
+          weekNumber={data.weekNumber}
+        />
+      )
+    }
+
+    {isSubmissionFormOpen && (
+        <SubmissionForm
+          projectId={projectId}
+          itemId={data._id}
+          data={data}
+          taskTitle={isWeeklyUpdate ? `Week ${data.weekNumber} Update` : data.title} // Passing title
+          onClose={() => setIsSubmissionFormOpen(false)}
+          onSuccess={handleSubmissionSuccess}
+        />
+      )
+    }
+
+
   </>
 );
 };

@@ -18,6 +18,14 @@ const projectServices = {
     return response.data;
   },
 
+  editProjectDetails: async (projectId,updateData) => {
+      const response = await axiosInstance.patch(
+      API_PATHS.STUDENT.EDIT_PROJECT_DETAILS(projectId),
+      updateData
+    );
+    return response.data;
+  },
+
   /* ============== WEEKLY UPDATES ============ */
 
   // Submit weekly update
