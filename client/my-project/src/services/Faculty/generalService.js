@@ -7,7 +7,6 @@ const generalServices = {
     const res = await axiosInstance.get(API_PATHS.FACULTY.GET_SESSIONS);
     return res.data;
   },
-
 }
 
 export default generalServices;

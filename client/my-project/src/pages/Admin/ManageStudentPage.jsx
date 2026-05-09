@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Search, Loader2, Building2, Trash2, Edit3, X, Save, Phone,
   Users, AlertCircle, GraduationCap, ChevronLeft, ChevronRight,
-  CalendarDays, Hash
+  CalendarDays, Mail, User, Hash
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -12,7 +12,7 @@ import departmentService from "../../services/Admin/departmentServices";
 import sessionService from "../../services/Admin/sessionService";
 
 // Components
-import Header from "../../components/common/Header";
+import Header from "../../components/ui/Header";
 import ConfirmModal from "../../components/common/ConfirmModal";
 
 const PAGE_LIMIT = 20;
@@ -26,7 +26,7 @@ const ManageStudentPage = () => {
   
   // Filter States
   const [filterSession, setFilterSession] = useState("");
-  const [filterDeptConfig, setFilterDeptConfig] = useState(""); // Changed to Config ID
+  const [filterDeptConfig, setFilterDeptConfig] = useState(""); 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -36,7 +36,7 @@ const ManageStudentPage = () => {
   
   // Modal States
   const [editModal, setEditModal] = useState({ open: false, student: null });
-  const [deleteConfig, setDeleteConfig] = useState({ isOpen: false, id: null, name: "" });
+  // Note: deleteConfig for single student removed. 
   const [bulkDeleteConfig, setBulkDeleteConfig] = useState({ isOpen: false, deptId: "", deptName: "" });
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedDeptForDelete, setSelectedDeptForDelete] = useState("");
@@ -88,7 +88,6 @@ const ManageStudentPage = () => {
     }
     try {
       setLoading(true);
-      // We pass filterDeptConfig which is the ObjectId
       const res = await studentService.getStudentsByFilter(
         filterSession, 
         filterDeptConfig || null, 
@@ -112,10 +111,17 @@ const ManageStudentPage = () => {
   const handleUpdateStudent = async (e) => {
     e.preventDefault();
     setActionLoading(true);
-    const { _id, phoneNumber, semester } = editModal.student;
     
+    // Updated payload: name, email, rollNumber, phoneNumber
+    const payload = {
+      name: editModal.student.user.name,
+      email: editModal.student.user.email,
+      rollNumber: editModal.student.rollNumber,
+      phoneNumber: editModal.student.phoneNumber
+    };
+
     try {
-      await studentService.updateStudent(_id, { phoneNumber, semester });
+      await studentService.updateStudent(editModal.student._id, payload);
       toast.success("Student updated successfully");
       setEditModal({ open: false, student: null });
       fetchStudents(pagination.page);
@@ -126,19 +132,7 @@ const ManageStudentPage = () => {
     }
   };
 
-  const handleDelete = async () => {
-    setActionLoading(true);
-    try {
-      await studentService.deleteStudent(deleteConfig.id);
-      toast.success("Student record deleted");
-      setDeleteConfig({ isOpen: false, id: null, name: "" });
-      fetchStudents(pagination.page);
-      fetchStats(filterSession);
-    } catch (err) { 
-      toast.error(err.message || "Deletion failed"); 
-    } finally { setActionLoading(false); }
-  };
-
+  // Bulk Delete remains
   const handleBulkDeleteConfirm = async () => {
     setActionLoading(true);
     try {
@@ -150,7 +144,9 @@ const ManageStudentPage = () => {
       fetchStats(filterSession);
     } catch (err) {
       toast.error(err.message || "Bulk delete failed");
-    } finally { setActionLoading(false); }
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const currentSessionName = useMemo(() => {
@@ -176,7 +172,6 @@ const ManageStudentPage = () => {
         {/* Filters and Search */}
         <div className="bg-white p-4 rounded-[2.5rem] shadow-xl shadow-slate-200/60 border border-slate-100 flex flex-col lg:flex-row gap-4">
           <div className="flex flex-col md:flex-row gap-4 flex-[2]">
-            {/* Session Select */}
             <div className="bg-slate-100 rounded-[1.5rem] px-4 flex items-center flex-1 focus-within:ring-2 focus-within:ring-blue-500">
               <CalendarDays className="text-slate-400 mr-2" size={16} />
               <select value={filterSession} onChange={(e) => setFilterSession(e.target.value)} className="bg-transparent border-none focus:ring-0 font-black text-slate-700 text-[10px] uppercase w-full h-14 outline-none">
@@ -184,7 +179,6 @@ const ManageStudentPage = () => {
               </select>
             </div>
 
-            {/* Department Filter */}
             <div className="bg-slate-100 rounded-[1.5rem] px-4 flex items-center flex-1 focus-within:ring-2 focus-within:ring-blue-500">
               <Building2 className="text-slate-400 mr-2" size={16} />
               <select value={filterDeptConfig} onChange={(e) => setFilterDeptConfig(e.target.value)} className="bg-transparent border-none focus:ring-0 font-black text-slate-700 text-[10px] uppercase w-full h-14 outline-none">
@@ -199,7 +193,7 @@ const ManageStudentPage = () => {
             <input type="text" placeholder="Search by name, email or roll..." className="w-full h-14 pl-14 pr-6 bg-slate-50 border-none rounded-[1.5rem] focus:ring-2 focus:ring-blue-500 font-bold text-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
 
-          {/* Bulk Action */}
+          {/* Bulk Action UI kept */}
           <div className="flex gap-2 items-center bg-red-50/50 p-1 rounded-[1.5rem] border border-red-100">
             <select
               value={selectedDeptForDelete}
@@ -270,9 +264,7 @@ const ManageStudentPage = () => {
                             <button onClick={() => setEditModal({ open: true, student: s })} className="p-2 bg-white shadow-sm border border-slate-100 rounded-xl hover:text-blue-600 text-slate-400 transition-colors">
                               <Edit3 size={16} />
                             </button>
-                            <button onClick={() => setDeleteConfig({ isOpen: true, id: s._id, name: s.user?.name })} className="p-2 bg-white shadow-sm border border-slate-100 rounded-xl hover:text-red-600 text-slate-400 transition-colors">
-                              <Trash2 size={16} />
-                            </button>
+                            {/* Single Trash button removed here */}
                           </div>
                         </td>
                       </tr>
@@ -304,9 +296,55 @@ const ManageStudentPage = () => {
               <button onClick={() => setEditModal({ open: false, student: null })} className="p-2 hover:bg-white rounded-full transition-colors"><X size={20}/></button>
             </div>
             
-            <form onSubmit={handleUpdateStudent} className="p-8 space-y-6">
+            <form onSubmit={handleUpdateStudent} className="p-8 space-y-4">
               <div className="space-y-4">
-                <div className="space-y-2">
+                {/* Name */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Name</label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <input 
+                      type="text" 
+                      required
+                      className="w-full h-14 pl-12 pr-6 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold"
+                      value={editModal.student.user.name}
+                      onChange={(e) => setEditModal({ ...editModal, student: { ...editModal.student, user: { ...editModal.student.user, name: e.target.value } }})}
+                    />
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Email</label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <input 
+                      type="email" 
+                      required
+                      className="w-full h-14 pl-12 pr-6 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold"
+                      value={editModal.student.user.email}
+                      onChange={(e) => setEditModal({ ...editModal, student: { ...editModal.student, user: { ...editModal.student.user, email: e.target.value } }})}
+                    />
+                  </div>
+                </div>
+
+                {/* Roll Number */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Roll Number</label>
+                  <div className="relative">
+                    <Hash className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <input 
+                      type="text" 
+                      required
+                      className="w-full h-14 pl-12 pr-6 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold"
+                      value={editModal.student.rollNumber}
+                      onChange={(e) => setEditModal({ ...editModal, student: { ...editModal.student, rollNumber: e.target.value }})}
+                    />
+                  </div>
+                </div>
+
+                {/* Phone */}
+                <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Phone Number</label>
                   <div className="relative">
                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -316,22 +354,6 @@ const ManageStudentPage = () => {
                       className="w-full h-14 pl-12 pr-6 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold"
                       value={editModal.student.phoneNumber}
                       onChange={(e) => setEditModal({ ...editModal, student: { ...editModal.student, phoneNumber: e.target.value }})}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Current Semester</label>
-                  <div className="relative">
-                    <Hash className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                    <input 
-                      type="number" 
-                      required
-                      min="1"
-                      max="10"
-                      className="w-full h-14 pl-12 pr-6 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold"
-                      value={editModal.student.semester}
-                      onChange={(e) => setEditModal({ ...editModal, student: { ...editModal.student, semester: e.target.value }})}
                     />
                   </div>
                 </div>
@@ -350,18 +372,7 @@ const ManageStudentPage = () => {
         </div>
       )}
 
-      {/* --- CONFIRMATION MODALS --- */}
-      <ConfirmModal
-        isOpen={deleteConfig.isOpen}
-        onClose={() => setDeleteConfig({ ...deleteConfig, isOpen: false })}
-        onConfirm={handleDelete}
-        title="Delete Student Record?"
-        message={`Are you sure you want to remove ${deleteConfig.name}? This action will also delete their login account.`}
-        theme="red"
-        loading={actionLoading}
-      >
-        Confirm Delete
-      </ConfirmModal>
+      {/* Single Confirmation Modal for deleteConfig removed */}
 
       <ConfirmModal
         isOpen={bulkDeleteConfig.isOpen}
@@ -378,7 +389,6 @@ const ManageStudentPage = () => {
   );
 };
 
-// Sub-components
 const StatCard = ({ icon: Icon, label, value, color, bgColor, description }) => (
   <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
     <div className="flex items-center justify-between mb-4">

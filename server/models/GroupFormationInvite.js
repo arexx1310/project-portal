@@ -1,30 +1,6 @@
 import mongoose from "mongoose";
 
-/* ── member sub-schema ───────────────────────── */
-
-const memberInviteSchema = new mongoose.Schema(
-  {
-    student: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Student",
-      required: true,
-    },
-    status: {
-      type: String,
-      enum: ["Pending", "Accepted", "Rejected"],
-      default: "Pending",
-    },
-    respondedAt: {
-      type: Date,
-      default: null,
-    },
-  },
-  { _id: false }
-);
-
-/* ── main schema ───────────────────────── */
-
-const groupFormationSchema = new mongoose.Schema(
+const groupInviteSchema = new mongoose.Schema(
   {
     initiator: {
       type: mongoose.Schema.Types.ObjectId,
@@ -32,51 +8,41 @@ const groupFormationSchema = new mongoose.Schema(
       required: true,
     },
 
-    groupName: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    memberInvites: {
-      type: [memberInviteSchema],
-      required: true,
-    },
-
-    finalGroup: {
+    groupId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Group",
-      default: null,
+      required: true,
+    },
+
+    receiver: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Student",
+      required: true,
     },
 
     status: {
       type: String,
-      enum: [
-        "PendingMemberApproval",
-        "Approved",   // All members accepted → Group created
-        "Rejected",
-      ],
-      default: "PendingMemberApproval",
+      enum: ["pending", "accepted", "rejected"],
+      default: "pending",
     },
 
-    // Stores a human-readable label, e.g. "Initiator" or "Member: CS21B001"
-    rejectedBy: {
+    rejectionReason: {
       type: String,
+      default: null
+    },
+
+    expiresAt: {
+      type: Date,
       default: null,
     },
   },
   { timestamps: true }
 );
 
-/* ── indexes ───────────────────────── */
+groupInviteSchema.index({ groupId: 1 });
+groupInviteSchema.index({ receiver: 1 });
 
-groupFormationSchema.index({ initiator: 1, status: 1 });
-groupFormationSchema.index({ "memberInvites.student": 1, status: 1 });
+// TTL index (only works if expiresAt is set)
+groupInviteSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-/* ── virtual ───────────────────────── */
-
-groupFormationSchema.virtual("allMembersAccepted").get(function () {
-  return this.memberInvites.every((m) => m.status === "Accepted");
-});
-
-export default mongoose.model("GroupFormation", groupFormationSchema);
+export default mongoose.model("GroupInvite", groupInviteSchema);

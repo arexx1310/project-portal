@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import sessionService from "../../services/Admin/sessionService";
 import {
   CheckCircle2, Loader2, Calendar, PlayCircle, Clock,
-  ShieldCheck, Power, Trash2, Plus, AlertCircle
+  ShieldCheck, Trash2, Plus
 } from "lucide-react";
 import toast from "react-hot-toast";
 
 // Components
-import Header from "../../components/common/Header";
+import Header from "../../components/ui/Header";
 import ConfirmModal from "../../components/common/ConfirmModal";
 
 const ManageSessionPage = () => {
@@ -56,17 +56,6 @@ const ManageSessionPage = () => {
     });
   };
 
-  const openDeactivateModal = (session) => {
-    setModalConfig({
-      isOpen: true,
-      type: "red",
-      title: "Deactivate Session?",
-      message: `This will suspend access for "${session.name}". You can reactivate it later.`,
-      actionLabel: "Deactivate",
-      onConfirm: () => handleAction(session._id, "deactivate"),
-    });
-  };
-
   const openDeleteModal = (session) => {
     setModalConfig({
       isOpen: true,
@@ -85,7 +74,6 @@ const ManageSessionPage = () => {
       setActionLoading(true);
       let res;
       if (actionType === "activate") res = await sessionService.activateSession(id);
-      if (actionType === "deactivate") res = await sessionService.deactivateSession(id);
       if (actionType === "delete") res = await sessionService.deleteSession(id);
 
       if (res.success) {
@@ -114,20 +102,21 @@ const ManageSessionPage = () => {
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 pb-20">
       <div className="max-w-8xl mx-auto space-y-8">
-      <Header
-        title="Academic Session Control Hub"
-        subtitle="Manage live and standby sessions"
-        icon={ShieldCheck}
-        actions={
-          <button
-            onClick={() => navigate("/admin/sessions/create")}
-            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-xl shadow-slate-200"
-          >
-            <Plus size={18} strokeWidth={3} />
-            <span className="hidden sm:inline">New Session</span>
-          </button>
-        }
-      />
+        <Header
+          title="Academic Session Control Hub"
+          subtitle="Manage live and standby sessions"
+          icon={ShieldCheck}
+          actions={
+            <button
+              onClick={() => navigate("/admin/sessions/create")}
+              className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-xl shadow-slate-200"
+            >
+              <Plus size={18} strokeWidth={3} />
+              <span className="hidden sm:inline">New Session</span>
+            </button>
+          }
+        />
+        
         {sessionsList.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 text-center bg-white border-2 border-dashed border-slate-200 rounded-[3rem]">
             <div className="w-20 h-20 rounded-[2rem] bg-slate-50 flex items-center justify-center mb-6">
@@ -186,14 +175,7 @@ const ManageSessionPage = () => {
 
                 {/* Actions Section */}
                 <div className="flex items-center gap-3 lg:shrink-0">
-                  {session.isActive ? (
-                    <button
-                      onClick={() => openDeactivateModal(session)}
-                      className="flex-1 lg:flex-none px-8 py-4 rounded-2xl bg-white border-2 border-slate-200 text-slate-600 font-black hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
-                    >
-                      <Power size={18} /> Deactivate
-                    </button>
-                  ) : (
+                  {!session.isActive && (
                     <>
                       <button
                         onClick={() => openActivateModal(session)}
@@ -210,6 +192,12 @@ const ManageSessionPage = () => {
                       </button>
                     </>
                   )}
+                  
+                  {session.isActive && (
+                    <div className="text-emerald-600 font-black text-sm px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100">
+                      Currently Active Session
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -217,7 +205,6 @@ const ManageSessionPage = () => {
         )}
       </div>
 
-      {/* Shared Confirmation Modal */}
       <ConfirmModal
         isOpen={modalConfig.isOpen}
         onClose={() => setModalConfig((prev) => ({ ...prev, isOpen: false }))}

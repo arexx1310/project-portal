@@ -1,22 +1,24 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { 
   Calendar, 
   Plus, 
-  Info, 
   Loader2, 
   Layers, 
   Clock7, 
   Clock8,
-  AlertTriangle,
-  CheckCircle2
+  AlertTriangle
 } from "lucide-react";
 
 // Services & Components
 import sessionService from "../../services/Admin/sessionService";
-import Header from "../../components/common/Header";
+import Header from "../../components/ui/Header";
+import ConfirmModal from "../../components/common/ConfirmModal";
 
+/**
+ * Sub-Component: Form Input Field
+ */
 const FormInputField = ({ label, type = "text", value, onChange, placeholder, hint, icon: Icon, readOnly, min, max }) => (
   <div className="space-y-2">
     <label className="block text-slate-700 text-sm font-bold tracking-tight">{label}</label>
@@ -41,6 +43,9 @@ const FormInputField = ({ label, type = "text", value, onChange, placeholder, hi
   </div>
 );
 
+/**
+ * Sub-Component: Section Card
+ */
 const SectionCard = ({ title, icon: Icon, children, subtitle }) => (
   <div className="bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-sm hover:shadow-md transition-shadow">
     <div className="flex items-center gap-4 mb-8">
@@ -59,6 +64,7 @@ const SectionCard = ({ title, icon: Icon, children, subtitle }) => (
 export default function CreateSessionPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const initialForm = {
     name: "",
@@ -69,9 +75,9 @@ export default function CreateSessionPage() {
 
   const [form, setForm] = useState(initialForm);
 
-  // 1 & 2: Auto-Generate Session Name
+  // Auto-Generate Session Name Logic
   const handleYearChange = (e) => {
-    const val = e.target.value.replace(/[^0-9]/g, ''); // Prevent decimals/negatives
+    const val = e.target.value.replace(/[^0-9]/g, '');
     const year = parseInt(val);
     
     setForm(prev => ({
@@ -87,7 +93,7 @@ export default function CreateSessionPage() {
       [sem]: { ...prev[sem], [field]: value },
     }));
 
-  // Duration and Logic Validation
+  // Validation Logic
   const validation = useMemo(() => {
     const { oddSemester: odd, evenSemester: even, academicYear } = form;
     const errors = [];
@@ -101,29 +107,29 @@ export default function CreateSessionPage() {
     };
 
     if (!academicYear || academicYear < 2000 || academicYear > 2100) errors.push("Invalid Year");
-    
-    // Date Existence
     if (!odd.startDate || !odd.endDate || !even.startDate || !even.endDate) errors.push("Missing Dates");
 
-    // Chronology
     if (new Date(odd.startDate) >= new Date(odd.endDate)) errors.push("Odd end must be after start");
     if (new Date(odd.endDate) >= new Date(even.startDate)) errors.push("Even sem must start after Odd ends");
     if (new Date(even.startDate) >= new Date(even.endDate)) errors.push("Even end must be after start");
 
-    // Duration Warnings
     if (odd.startDate && odd.endDate && getDiffMonths(odd.startDate, odd.endDate) < 2) warnings.push("Odd Sem duration is < 2 months");
     if (even.startDate && even.endDate && getDiffMonths(even.startDate, even.endDate) < 2) warnings.push("Even Sem duration is < 2 months");
 
     return { isValid: errors.length === 0, errors, warnings };
   }, [form]);
 
-  const handleSubmit = async (e) => {
+  // Step 1: Pre-submit check to open modal
+  const handlePreSubmit = (e) => {
     e.preventDefault();
     if (!validation.isValid) return toast.error(validation.errors[0]);
+    setShowConfirm(true);
+  };
 
+  // Step 2: Final API Call after confirmation
+  const handleFinalSubmit = async () => {
     setLoading(true);
     try {
-      // Trim and Format
       const payload = {
         ...form,
         name: form.name.trim(),
@@ -134,12 +140,11 @@ export default function CreateSessionPage() {
       
       if (res.success) {
         toast.success("Session Created Successfully");
-        // Reset and Navigate
         setForm(initialForm);
-        navigate("/admin/managesession"); // Change to your actual route
+        setShowConfirm(false);
+        navigate("/admin/managesession");
       }
     } catch (err) {
-      // Show backend error clearly
       toast.error(err.response?.data?.message || err.message || "Failed to create session");
     } finally {
       setLoading(false);
@@ -149,16 +154,15 @@ export default function CreateSessionPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 pb-20">
       <div className="max-w-8xl mx-auto space-y-8">
-      <Header 
-        title="Initialize Session" 
-        subtitle="New academic cycle setup" 
-        showBack={true}
-        icon={Plus}
-      />
+        <Header 
+          title="Initialize Session" 
+          subtitle="New academic cycle setup" 
+          showBack={true}
+          icon={Plus}
+        />
 
-      
-        <form onSubmit={handleSubmit} className="space-y-8">
-          
+        <form onSubmit={handlePreSubmit} className="space-y-8">
+          {/* Session Identity */}
           <SectionCard title="Session Identity" subtitle="Identification & Tracking" icon={Layers}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormInputField
@@ -169,8 +173,6 @@ export default function CreateSessionPage() {
                 placeholder="2026"
                 icon={Calendar}
                 hint="Format: YYYY (e.g., 2026)"
-                min="2000"
-                max="2100"
               />
               <FormInputField
                 label="Generated Session Name"
@@ -182,6 +184,7 @@ export default function CreateSessionPage() {
             </div>
           </SectionCard>
 
+          {/* Semesters */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <SectionCard title="Odd Semester" subtitle="Phase 01 (Sem 7)" icon={Clock7}>
               <div className="space-y-4">
@@ -218,11 +221,11 @@ export default function CreateSessionPage() {
             </SectionCard>
           </div>
 
-          {/* 13: Real-Time Duration Warning & Validation Summary */}
+          {/* Validation Feedback */}
           {(validation.warnings.length > 0 || !validation.isValid) && (
             <div className={`flex gap-4 border rounded-[2.5rem] p-8 shadow-sm transition-all ${validation.isValid ? 'bg-amber-50 border-amber-100' : 'bg-rose-50 border-rose-100'}`}>
               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${validation.isValid ? 'bg-white text-amber-600' : 'bg-white text-rose-600'}`}>
-                {validation.isValid ? <AlertTriangle size={24} /> : <AlertTriangle size={24} />}
+                <AlertTriangle size={24} />
               </div>
               <div>
                 <p className={`font-bold text-sm mb-1 ${validation.isValid ? 'text-amber-900' : 'text-rose-900'}`}>
@@ -236,6 +239,7 @@ export default function CreateSessionPage() {
             </div>
           )}
 
+          {/* Form Actions */}
           <div className="flex flex-col sm:flex-row gap-4 pt-6">
             <button
               type="button"
@@ -246,24 +250,28 @@ export default function CreateSessionPage() {
             </button>
             <button
               type="submit"
-              disabled={loading || !validation.isValid} // 5 & 10: Guard submit
+              disabled={loading || !validation.isValid}
               className="flex-[2] py-4 rounded-2xl bg-slate-900 text-white text-xs font-black hover:bg-indigo-600 shadow-xl shadow-slate-200 transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-3 uppercase tracking-[0.2em]"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="animate-spin" size={18} />
-                  Synchronizing...
-                </>
-              ) : (
-                <>
-                  <Plus size={18} strokeWidth={3} />
-                  Create Academic Session
-                </>
-              )}
+              <Plus size={18} strokeWidth={3} />
+              Create Academic Session
             </button>
           </div>
         </form>
       </div>
+
+      {/* The Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={handleFinalSubmit}
+        loading={loading}
+        title="Verify Session Details (IMPORTANT)"
+        message="Please double-check the dates and academic year. They cannot be updated though it can be deleted."
+        theme="green"
+      >
+        Confirm & Initialize
+      </ConfirmModal>
     </div>
   );
 }

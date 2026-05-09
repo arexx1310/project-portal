@@ -10,21 +10,14 @@ import User from "../../models/User.js";
 export const getProfile = async (req, res, next) => {
     try {
         const userId = req.user.id;
-
-        if (!req.faculty || !req.faculty.id) {
-            return res.status(401).json({
-                success: false,
-                message: "Unauthorized: Faculty profile not attached",
-            });
-        }
-
+        
         const facultyId = req.faculty.id;
 
         const [userData, facultyProfile] = await Promise.all([
             User.findById(userId).select("-password"),
             Faculty.findById(facultyId)
                 .select("-user")
-                .populate("departmentConfig", "department"),
+                .populate("department", "department"),
         ]);
 
         res.status(200).json({
@@ -35,11 +28,13 @@ export const getProfile = async (req, res, next) => {
                 phoneNumber: facultyProfile.phoneNumber,
                 staffId: facultyProfile.staffId,
                 roles: facultyProfile.roles || [],
-                department: facultyProfile.departmentConfig.department,
+                department: facultyProfile.department.department,
             }
         });
 
     } catch (error) {
+
         next(error);
+        
     }
 };

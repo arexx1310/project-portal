@@ -1,6 +1,7 @@
 import Student from "../../models/Student.js";
 import User from "../../models/User.js";
 
+
 /**
  * @desc    Get profile data of the logged-in student
  * @route   GET /api/student/profile
@@ -14,9 +15,8 @@ export const getProfile = async (req, res, next) => {
             User.findById(userId).select("name email"),
             Student.findById(studentId)
                 .select("-user")
-                .populate("departmentConfig", "department -_id")
+                .populate("department", "department -_id")
                 .populate("session", "name")
-                .populate("groupId", "name")
         ]);
         
         res.status(200).json({
@@ -26,12 +26,13 @@ export const getProfile = async (req, res, next) => {
                     email: userData.email,
                     phoneNumber: studentProfile.phoneNumber,
                     rollNumber: studentProfile.rollNumber,
-                    department: studentProfile.departmentConfig.department,
-                    specialization: studentProfile.specialization,
+                    department: studentProfile.department.department,
+                    programType: studentProfile.programType,
+                    specialization: studentProfile.specialization || "",
                     semester: studentProfile.semester,
                     session: studentProfile.session.name,
                     admissionYear: studentProfile.admissionYear,
-                    group: studentProfile.groupId?.name || "",
+                    groupId: studentProfile.groupId
             },
             message: "User data fetched successfully."
         });
@@ -40,3 +41,4 @@ export const getProfile = async (req, res, next) => {
         next(error);
     }
 };
+

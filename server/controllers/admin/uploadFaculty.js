@@ -1,11 +1,14 @@
 //controllers/admin/uploadFaculty.js
+
+// Checked
+
 import XLSX from "xlsx";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 
 import User from "../../models/User.js";
 import Faculty from "../../models/Faculty.js";
-import DepartmentConfig from "../../models/DepartmentConfig.js";
+import Department from "../../models/DepartmentConfig.js";
 
 /**
  * @desc Upload faculty via Excel (Admin only)
@@ -41,7 +44,7 @@ export const uploadFaculty = async (req, res, next) => {
         }
 
     // Fetch department config
-    const deptConfig = await DepartmentConfig.findById(departmentId)
+    const deptConfig = await Department.findById(departmentId)
       .select("_id").lean();
 
     if (!deptConfig) {
@@ -147,7 +150,7 @@ export const uploadFaculty = async (req, res, next) => {
         user: userId,
         staffId,
         phoneNumber,
-        departmentConfig: deptConfig._id,
+        department: deptConfig._id,
         roles: [],
       });
 

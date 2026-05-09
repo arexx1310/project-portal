@@ -17,7 +17,7 @@ import toast from "react-hot-toast";
 import studentService from "../../services/Admin/studentService";
 import sessionService from "../../services/Admin/sessionService";
 import facultyService from "../../services/Admin/facultyService";
-import Header from '../../components/common/Header';
+import Header from "../../components/ui/Header";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();

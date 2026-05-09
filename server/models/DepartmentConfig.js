@@ -20,12 +20,6 @@ const btpConfigSchema = new mongoose.Schema(
       },
     },
 
-    minSupervisors: {
-      type: Number,
-      default: 1,
-      min: 1,
-    },
-
     maxSupervisors: {
       type: Number,
       required: true,
@@ -50,24 +44,50 @@ const btpConfigSchema = new mongoose.Schema(
       min: 1,
     },
     
-    groupCreationDeadline: {
+    lockRecordDeadline: {
       type: Date,
       required: true,
     },
+  },
+  { _id: false }
+);
 
-    supervisorSelectionDeadline: {
-      type: Date,
+/* ─────────────────────────────────────────────────────────────
+   MTP CONFIG  (PG — MTech)
+   MTech dissertations are individual: one student, 1-N supervisors.
+   No group-size rules needed — only supervisor and cross-dept rules.
+───────────────────────────────────────────────────────────── */
+const mtpConfigSchema = new mongoose.Schema(
+  {
+    /**
+     * How many supervisors a PG student may invite in total.
+     * Co-supervision is common (e.g. 2), but departments set their own cap.
+     */
+    maxSupervisors: {
+      type: Number,
       required: true,
+      min: 1,
+    },
+ 
+    /**
+     * How many active MTP groups (i.e. PG students) a supervisor
+     * may be assigned to concurrently in a session.
+     */
+    maxStudentsPerSupervisor: {
+      type: Number,
+      required: true,
+      min: 1,
     },
 
-    projectProposalDeadline: {
+      /** If false, the student may only invite faculty from their own department. */
+    crossDeptisAllowed: {
+        type: Boolean,
+        default: true,
+    },
+ 
+    lockRecordDeadline: {
       type: Date,
       required: true,
-    },
-
-    isActive: {
-      type: Boolean,
-      default: true,
     },
   },
   { _id: false }
@@ -94,9 +114,14 @@ const departmentConfigSchema = new mongoose.Schema(
       type: btpConfigSchema,
       required: true,
     },
+
+    mtpConfig: {
+      type: mtpConfigSchema,
+      default: null,
+    },
   },
   { timestamps: true }
 );
 
-export default mongoose.model('DepartmentConfig',departmentConfigSchema);
+export default mongoose.model('Department',departmentConfigSchema);
 

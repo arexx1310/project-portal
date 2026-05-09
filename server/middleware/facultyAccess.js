@@ -2,50 +2,18 @@ import Faculty from "../models/Faculty.js";
 import mongoose from "mongoose";
 
 /**
- * Attaches faculty profile to req.faculty.
- * Used for all faculty routes.
+ * Attaches faculty profile to req.faculty from the verified token.
+ * No DB hit — facultyId, department, roles are embedded at login.
  */
-export const attachFacultyProfile = async (req, res, next) => {
-  try {
-    if (!req.user || !req.user.id) {
-        return res.status(403).json({
-            success: false,
-            message: "Unauthorized. No user identity attached."
-        })
-    }
-    const faculty = await Faculty
-      .findOne({ user: req.user.id })
-      .select("departmentConfig roles")
-      .lean();
+export const attachFacultyProfile = (req, res, next) => {
+  const { facultyId, department, roles } = req.user;
 
-    if (!faculty) {
-      return res.status(404).json({
-        success: false,
-        message: "Faculty profile not found",
-      });
-    }
-
-    // Validate departmentConfig ObjectId
-    if (
-      !faculty.departmentConfig ||
-      !mongoose.Types.ObjectId.isValid(faculty.departmentConfig)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid department configuration reference",
-      });
-    }
-
-    req.faculty = {
-      id: faculty._id,
-      departmentConfig: faculty.departmentConfig,
-      roles: faculty.roles,
-    };
-
-    next();
-  } catch (error) {
-    next(error);
+  if (!facultyId) {
+    return res.status(404).json({ success: false, message: "Faculty profile not found." });
   }
+
+  req.faculty = { id: facultyId, department, roles: roles ?? [] };
+  next();
 };
 
 /**
@@ -70,7 +38,6 @@ export const authorizeFacultyRoles =
         message: "Access Denied: No roles assigned",
       });
     }
-
 
     if (!allowedRoles.length) {
       return res.status(500).json({

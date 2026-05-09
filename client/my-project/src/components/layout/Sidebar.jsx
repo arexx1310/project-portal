@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -13,6 +13,7 @@ import {
   Settings2,
   ListChecks,
   FileText,
+  GraduationCap,
 } from "lucide-react";
 import nsutlogo from "../../assets/nsut-logo.png";
 
@@ -32,93 +33,85 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
 
   const hasFacultyRole = (roles) => {
     if (!user || user.role !== "faculty") return false;
-    const userSubRoles = user.faculty?.roles || []; 
+    const userSubRoles = user.roles || []; 
     return roles.some((role) => userSubRoles.includes(role));
   };
 
-  const adminLinks = [
-    { to: "/admin/dashboard", icon: LayoutDashboard, text: "Dashboard" },
-    {
-      text: "Session Management",
-      icon: Settings2,
-      isDropdown: true,
-      subLinks: [
-        { to: "/admin/managedepartments", icon: ListChecks, text: "Manage Departments"},
-        { to: "/admin/sessions/create", icon: CalendarPlus, text: "Create Session" },
-        { to: "/admin/managesession", icon: ListChecks, text: "Manage Sessions" },
-      ],
-    },
-    {
-      text: "Users Management",
-      icon: User,
-      isDropdown: true,
-      subLinks: [
-        { to: "/admin/students/upload", icon: Upload, text: "Upload Students" },
-        { to: "/admin/faculty/upload", icon: Upload, text: "Upload Faculty" },
-        { to: "/admin/faculty/manage", icon: ListChecks, text: "Manage Faculty" },
-        { to: "/admin/student/manage", icon: ListChecks, text: "Manage Student" },
-      ],
-    },
-  ];
+  const menuLinks = useMemo(() => {
+    if (!user) return [];
 
-  const facultyLinks = [
-    { to: "/faculty/dashboard", icon: LayoutDashboard, text: "Dashboard" },
-    { text: "Profile Settings" ,
-      icon: User,
-      isDropdown: true,
-      subLinks: [
-        {to: "/faculty/profile", icon: User, text: "Profile"},
-        {to: "/faculty/change-password", icon: Info, text: "Change Password"}
-      ]
-    },
-    { to: "/faculty/btpconfig",icon: Settings2,text: "BTP Configuration"},
-    hasFacultyRole(["BTP_COMMITTEE_HEAD","BTP_COMMITTEE_MEMBER"]) && { to: "/faculty/btp/student-management", icon: Settings2, text: "Student Management" },
-    
-    {
-      text: "Groups Management",
-      icon: Settings2,
-      isDropdown: true,
-      subLinks: [
-          { to: "/faculty/btp/supervision-requests", icon: ListChecks, text: "Project Proposals"},
-          { to: "/faculty/btp/supervised-groups", icon: Users, text: "My Groups"},
-      ], 
-    },
-
-  ].filter(Boolean);
-
-  const studentLinks = [
-    { to: "/student/dashboard", icon: LayoutDashboard, text: "Dashboard" },
-    { text: "Profile Settings" ,
-      icon: User,
-      isDropdown: true,
-      subLinks: [
-        {to: "/student/profile", icon: User, text: "Profile"},
-        {to: "/student/change-password", icon: Info, text: "Change Password"}
-      ]
-    },
-    {
-      text: "BTP Registrations",
-      icon: Settings2,
-      isDropdown: true,
-      subLinks: [
-        { to: "/student/groups-invites", icon: ListChecks, text: "Group Invitations"},
-        { to: "/student/project/proposals", icon: ListChecks, text: "Project Proposal"},
-
-      ],
-    },
-    { 
-      text: "Groups and Project",
-      icon: FileText,
-      isDropdown : true,
-      subLinks: [
-          { to: "/student/btp/mygroup", icon: Users, text: "My Group"},      
-      ]
-
+    if (user.role === "admin") {
+      return [
+        { to: "/admin/dashboard", icon: LayoutDashboard, text: "Dashboard" },
+        {
+          text: "Sessions",
+          icon: Settings2,
+          isDropdown: true,
+          subLinks: [
+            { to: "/admin/managedepartments", icon: ListChecks, text: "Departments" },
+            { to: "/admin/sessions/create", icon: CalendarPlus, text: "Create Session" },
+            { to: "/admin/managesession", icon: ListChecks, text: "Manage Sessions" },
+          ],
+        },
+        {
+          text: "Users",
+          icon: User,
+          isDropdown: true,
+          subLinks: [
+            { to: "/admin/students/upload", icon: Upload, text: "Upload Students" },
+            { to: "/admin/faculty/upload", icon: Upload, text: "Upload Faculty" },
+            { to: "/admin/faculty/manage", icon: ListChecks, text: "Manage Faculty" },
+            { to: "/admin/student/manage", icon: ListChecks, text: "Manage Students" },
+          ],
+        },
+      ];
     }
-  ].filter(Boolean);
 
-  const menuLinks = user?.role === "admin" ? adminLinks : user?.role === "faculty" ? facultyLinks : studentLinks;
+    if (user.role === "faculty") {
+      return [
+        { to: "/faculty/dashboard", icon: LayoutDashboard, text: "Dashboard" },
+        { to: "/faculty/profile", icon: User, text: "Profile"},
+        { to: "/faculty/change-password",icon: Info, text: "Change Password"},
+        { to: "/faculty/config", icon: Settings2, text: "Department Config" },
+        hasFacultyRole(["BTP_COMMITTEE_HEAD", "BTP_COMMITTEE_MEMBER"]) && 
+          { to: "/faculty/btp/student-management", icon: Settings2, text: "Student Admin" },
+        {
+          text: "B.Tech Groups",
+          icon: ListChecks,
+          isDropdown: true,
+          subLinks: [
+            { to: "/faculty/my-groups", icon: ListChecks, text: "My Groups" },
+            { to: "/faculty/project-proposals/ug", icon: FileText, text: "Proposals" }
+          ],
+        },
+        {
+          text: "M.Tech Projects",
+          icon: ListChecks,
+          isDropdown: true,
+          subLinks: [
+            { to: "/faculty/pg/students", icon: ListChecks, text: "My Groups" },
+            { to: "/faculty/project-proposals/pg", icon: FileText, text: "Proposals" }
+          ],
+        },
+      ].filter(Boolean);
+    }
 
+    // Student Links
+    return [
+      { to: "/student/dashboard", icon: LayoutDashboard, text: "Dashboard" },
+      { to: "/student/profile", icon: User, text: "Profile"},
+      { to: "/student/change-password",icon: Info, text: "Change Password"},
+      { 
+        text: "Project Management",
+        icon: FileText,
+        isDropdown: true,
+        subLinks: [
+          { to: "/student/project-proposals", icon: ListChecks, text: "Project Proposal" },
+          { to: "/student/btp/projects", icon: GraduationCap, text: "My Projects" }
+        ].filter(Boolean)
+      }
+    ];
+  }, [user]);
   return (
     <>
       {/* Overlay */}

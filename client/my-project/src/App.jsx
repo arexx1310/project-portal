@@ -23,21 +23,26 @@ import ManageStudentPage from "./pages/Admin/ManageStudentPage";
 import FacultyDashboard from "./pages/Faculty/DashboardPage";
 import FacultyProfilePage from "./pages/Faculty/ProfilePage";
 import ChangePasswordFaculty from "./pages/Faculty/Security";
-import BTPConfigPage from "./pages/Faculty/BTPConfigPage";
+import DeptConfigPage from "./pages/Faculty/DeptConfigPage";
+import MyGroupsPage from "./pages/Faculty/MyGroupsPage";
+import GroupDetailsPage from "./pages/Faculty/GroupDetailsPage";
 import SupervisionRequestsPage from "./pages/Faculty/SupervisionRequestPage";
-import SupervisedGroupsPage from "./pages/Faculty/SupervisedGroupsPage";
 import StudentsManagementPage from "./pages/Faculty/ReportPage";
 
 // Student pages
+// ====================== UG (BTECH) ======================= 
 import StudentDashboard from "./pages/Student/DashboardPage";
 import StudentProfilePage from "./pages/Student/ProfilePage";
 import ChangePasswordStudent from "./pages/Student/Security";
-import MyGroupPage from "./pages/Student/MyGroupPage";
-import BTPInvitesPage from "./pages/Student/InvitesPage";
-import ProjectProposalPage from "./pages/Student/ProjectProposalPage";
+
+import ProjectsPage from "./pages/Student/ProjectPage";
+import GroupFormationPage from "./pages/Student/InvitesPage";
+import MyProposals from "./pages/Student/ProposalList";
+import CreateProposal from "./pages/Student/CreateProposal";
 
 // Common
 import NotFoundPage from "./pages/NotFoundPage";
+
 
 const roleHome = (role) => {
   if (role === "admin") return "/admin/dashboard";
@@ -98,9 +103,12 @@ const App = () => {
             <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
             <Route path="/faculty/profile" element={<FacultyProfilePage />} />
             <Route path="/faculty/change-password" element={<ChangePasswordFaculty/>}/>
-            <Route path="/faculty/btpconfig" element={<BTPConfigPage />} />
-            <Route path="/faculty/btp/supervision-requests" element={<SupervisionRequestsPage />} />
-            <Route path="/faculty/btp/supervised-groups" element={<SupervisedGroupsPage />} />
+            <Route path="/faculty/config" element={<DeptConfigPage/>} />
+            <Route path="/faculty/project-proposals/ug" element={<SupervisionRequestsPage />}/>
+            <Route path="/faculty/project-proposals/pg" element={<SupervisionRequestsPage isPG={true}/>}/>
+            <Route path="/faculty/my-groups" element={<MyGroupsPage/>}/>
+            <Route path="/faculty/pg/students" element={<MyGroupsPage isPG={true}/>}/>
+            <Route path="/faculty/my-groups/:groupId" element={<GroupDetailsPage/>}/>
             <Route path="/faculty/btp/student-management" element={<StudentsManagementPage />} />
           </Route>
         </Route>
@@ -111,9 +119,10 @@ const App = () => {
             <Route path="/student/dashboard" element={<StudentDashboard />} />
             <Route path="/student/profile" element={<StudentProfilePage />} />
             <Route path="/student/change-password" element={<ChangePasswordStudent/>}/>
-            <Route path="/student/btp/mygroup" element={<MyGroupPage />} />
-            <Route path="/student/project/proposals" element={<ProjectProposalPage />} />
-            <Route path="/student/groups-invites" element={<BTPInvitesPage />} />
+            <Route path="/student/group-formation" element={<GroupFormationPage/>}/>
+            <Route path="/student/project-proposals" element={<MyProposals/>}/>
+            <Route path="/student/create-proposal" element={<CreateProposal/>}/>
+            <Route path="/student/btp/projects" element={<ProjectsPage/>}/>
           </Route>
         </Route>
 

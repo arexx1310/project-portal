@@ -1,7 +1,8 @@
 // controllers/admin/departmentController.js
 import mongoose from "mongoose";
-import DepartmentConfig from "../../models/DepartmentConfig.js";
+import Department from "../../models/DepartmentConfig.js";
 
+// Checked
 
 const validateAndNormalizeInput = ({
   department,
@@ -63,7 +64,7 @@ export const createDepartment = async (req, res, next) => {
     const { department: deptName, specializations: normalizedSpecs } = data;
 
     // Check if department already exists
-    const existingDept = await DepartmentConfig.findOne({
+    const existingDept = await Department.findOne({
       department: deptName,
     });
 
@@ -79,25 +80,26 @@ export const createDepartment = async (req, res, next) => {
     defaultDeadline.setDate(defaultDeadline.getDate() + 30);
 
     // Create department with default config
-   const departmentDoc = await DepartmentConfig.create({
+   const departmentDoc = await Department.create({
       department: deptName,
       specializations: [...new Set(normalizedSpecs)],
       btpConfig: {
         minStudentsPerGroup: 1,
         maxStudentsPerGroup: 4,
-        minSupervisors: 1,
         maxSupervisors: 2,
-        maxGroupsPerSupervisor: 5,
-        groupCreationDeadline: defaultDeadline,
-        supervisorSelectionDeadline: defaultDeadline,
-        projectProposalDeadline: defaultDeadline,
-        isActive: true,
-
+        maxGroupsPerSupervisor: 4,
+        lockRecordDeadline: defaultDeadline,
         crossDepartmentRules: {
           isAllowed: true,
-          minSameDepartmentStudents: 2,
-        },
+          minSameDepartmentStudents: 1,
+        },  
       },
+      mtpConfig: {
+          maxSupervisors: 2,
+          maxStudentsPerSupervisor: 10,
+          crossDeptisAllowed: false,
+          lockRecordDeadline: defaultDeadline,
+        }
     });
 
     return res.status(201).json({
@@ -128,7 +130,7 @@ export const editDepartment = async (req, res, next) => {
     }
 
     // Find existing department
-    const existingDept = await DepartmentConfig.findById(id);
+    const existingDept = await Department.findById(id);
 
     if (!existingDept) {
       return res.status(404).json({
@@ -155,7 +157,7 @@ export const editDepartment = async (req, res, next) => {
 
     //  Check duplicate only if department is being updated
     if (updatedFields.department) {
-      const duplicate = await DepartmentConfig.findOne({
+      const duplicate = await Department.findOne({
         department: updatedFields.department,
         _id: { $ne: id },
       });
@@ -177,7 +179,7 @@ export const editDepartment = async (req, res, next) => {
     }
 
     // Perform update
-    const updatedDept = await DepartmentConfig.findByIdAndUpdate(
+    const updatedDept = await Department.findByIdAndUpdate(
       id,
       { $set: updatedFields },
       { new: true, runValidators: true }
@@ -202,7 +204,7 @@ export const editDepartment = async (req, res, next) => {
 export const getDepartments = async (req, res, next) => {
   try {
     // Get all available departments in database
-    const departments = await DepartmentConfig.find()
+    const departments = await Department.find()
       .select("_id department specializations")
       .sort({ department: 1 })
       .lean(); 

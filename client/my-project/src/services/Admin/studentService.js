@@ -31,12 +31,6 @@ const studentService = {
     return response.data;
   },
 
-  deleteStudent: async (id) => {
-    if (!id) throw new Error("Student ID is required");
-    const response = await axiosInstance.delete(API_PATHS.ADMIN.DELETE_STUDENT(id));
-    return response.data;
-  },
-
   bulkDeleteStudents: async (departmentId, sessionId) => {
     if (!departmentId || !sessionId) throw new Error("departmentId and sessionId is required");
 

@@ -1,4 +1,5 @@
 //controllers/admin/uploadStudent.js
+
 import XLSX from "xlsx";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
@@ -6,7 +7,7 @@ import mongoose from "mongoose";
 import User from "../../models/User.js";
 import Student from "../../models/Student.js";
 import Session from "../../models/Session.js";
-import DepartmentConfig from "../../models/DepartmentConfig.js";
+import Department from "../../models/DepartmentConfig.js";
 
 export const uploadStudents = async (req, res, next) => {
   const dbSession = await mongoose.startSession();
@@ -19,7 +20,29 @@ export const uploadStudents = async (req, res, next) => {
       });
     }
     const { departmentId } = req.params;
-    let { specialization } = req.body;
+    let { specialization, programType } = req.body;
+
+    if (
+      typeof programType !== "string" || programType.trim() === ""
+    ) {
+        return res.status(400).json({
+        success: false,
+        message: "Program type is required",
+      });
+    }
+
+    programType = programType.trim();
+
+    if ( !["btech", "mtech"].includes(programType.toLowerCase())) {
+        return res.status(400).json({
+            success: false,
+            message: "ProgramType must be either BTech or MTech."
+        });
+    }
+
+    const level = programType.toLowerCase() === "btech" ? "UG" : "PG";
+
+    const sem =  level === "UG" ? 7 : 3;
 
     // Validate form data
     if (!departmentId) {
@@ -38,17 +61,17 @@ export const uploadStudents = async (req, res, next) => {
     }
     
     // specialization required
-    if (typeof specialization !== "string" || specialization.trim() === "") {
+    if (level === "UG" && (typeof specialization !== "string" || specialization.trim() === "")) {
       return res.status(400).json({
         success: false,
         message: "Specialization is required",
       });
     }
 
-    specialization = specialization.trim().toUpperCase();
+    specialization = specialization?.trim().toUpperCase();
 
     // Fetch department config
-    const deptConfig = await DepartmentConfig.findById(departmentId)
+    const deptConfig = await Department.findById(departmentId)
       .select("_id specializations")
       .lean();
 
@@ -60,6 +83,7 @@ export const uploadStudents = async (req, res, next) => {
     }
 
     if (
+      level === "UG" &&
       Array.isArray(deptConfig.specializations) &&
       deptConfig.specializations.length > 0
     ) {
@@ -155,15 +179,15 @@ export const uploadStudents = async (req, res, next) => {
         continue;
       }
 
+      existingEmailSet.add(email);
+      existingRollSet.add(rollNumber);
+
       // Phone validation (Indian format)
       if (!/^[6-9]\d{9}$/.test(phoneNumber)) {
         skipped++;
         skipDetails.push({ email, reason: "Invalid phone number" });
         continue;
       }
-
-      // Admission year
-      const admissionYear = activeSession.academicYear - 3;
 
       const userId = new mongoose.Types.ObjectId();
 
@@ -183,12 +207,11 @@ export const uploadStudents = async (req, res, next) => {
         user: userId,
         rollNumber,
         phoneNumber,
-        admissionYear,
-        departmentConfig: deptConfig._id,
-        specialization: specialization || null,
-        semester: 7,
+        department: deptConfig._id,
+        specialization: level === "UG" ? specialization : null,
+        semester: sem,
+        programType: level,
         session: activeSession._id,
-        isAvailableForInvite: true,
       });
       created++;
     }

@@ -19,7 +19,6 @@ export const API_PATHS = {
     GET_SESSIONS: "/api/admin/sessions",
     GET_ACTIVE_SESSION: "/api/admin/sessions/active",
     ACTIVATE_SESSION: (id) => `/api/admin/sessions/${id}/activate`,
-    DEACTIVATE_SESSION: (id) => `/api/admin/sessions/${id}/deactivate`,
     DELETE_SESSION: (id) => `/api/admin/sessions/${id}/delete`,
 
     // Students
@@ -27,7 +26,6 @@ export const API_PATHS = {
     GET_STUDENTS: "/api/admin/students",
     UPDATE_STUDENT: (id) => `/api/admin/students/${id}`,
     GET_STUDENT_STATS: "/api/admin/students/stats",
-    DELETE_STUDENT: (id) => `/api/admin/students/${id}`,
     BULK_DELETE_STUDENT: (deptId,sessionId) => `/api/admin/students/bulkdelete/${deptId}/${sessionId}`,
 
     // Faculty
@@ -39,62 +37,157 @@ export const API_PATHS = {
     DELETE_FACULTY: (id) => `/api/admin/faculty/${id}`,
   },
   FACULTY: {
-     /* ============== Personal Info and Security ============ */
-    GET_PROFILE: "/api/faculty/profile",
-    UPDATE_PASSWORD: "/api/faculty/updatepassword",
+    /* ============== Personal Info and Security ============ */
+    GET_PROFILE: "/api/faculty/profile/",
+    UPDATE_PASSWORD: "/api/faculty/updatePassword",
 
     /* ============== NOTIFICATIONS ============ */
     GET_NOTIFICATIONS: "/api/faculty/notifications",
 
-    /* ============== BTP CONFIGS ============ */
-    GET_BTP_CONFIG: "/api/faculty/btpconfig",
-    UPDATE_BTP_CONFIG: (departmentId) => `/api/faculty/btpconfig/${departmentId}`,
+    /* ============== DEPARTMENT CONFIG ============ */
+    GET_DEPT_CONFIG: "/api/faculty/config",
+    UPDATE_BTP_CONFIG: (departmentId) => `/api/faculty/config/${departmentId}/btp`,
+    UPDATE_MTP_CONFIG: (departmentId) => `/api/faculty/config/${departmentId}/mtp`,
 
+    /* ============== SESSIONS ============ */
     GET_SESSIONS: "/api/faculty/sessions",
 
-    /* ============== GROUP INVITES ============ */
-    GET_PENDING_SUPERVISION_REQUEST: "/api/faculty/project-approvals/pending",
-    GET_ALL_REQUESTS: "/api/faculty/project-approvals",
-    GET_REQUEST_DETAILS: (id) =>  `/api/faculty/project-approvals/${id}`,
-    RESPONSE_REQUEST: (id) => `/api/faculty/project-approvals/${id}/respond`,
+    /* ============== PROJECT PROPOSALS ============ */
+    GET_MY_REQUESTS: "/api/faculty/project-proposal/my-requests",
+    GET_REQUEST_DETAILS: (inviteId) =>
+      `/api/faculty/project-proposal/my-requests/${inviteId}`,
+    RESPOND_TO_REQUEST: (requestId) =>
+      `/api/faculty/project-proposal/${requestId}/respond`,
+    RESPOND_TO_MTP_REQUEST: (requestId) => 
+      `/api/faculty/project-proposal/${requestId}/respond-pg`,
 
     /* ============== GROUPS ============ */
-    GET_MY_GROUPS: (sessionId) => sessionId ? `/api/faculty/groups?sessionId=${sessionId}` : `/api/faculty/groups`,
-    GET_MY_PROJECTS: "/api/faculty/projects",
-    GET_GROUP_DETAILS: (id) => `/api/faculty/managegroup/groups/${id}`,
+    GET_MY_GROUPS: (sessionId) => 
+      `/api/faculty/groups/my-groups${sessionId ? `?sessionId=${sessionId}` : ""}`,
 
-    /* ============== REPORTS ============ */
-    GET_UNGROUPED_DATA: "/api/faculty/ungrouped-students/excel",
-    GET_UNSUPERVISED_DATA: "/api/faculty/unsupervised-groups/excel",
-    GET_GROUPS_DATA: "/api/faculty/department/groups",
+    GET_MTECH_STUDENT: (sessionId) => 
+      `/api/faculty/mtech-students${sessionId ? `?sessionId=${sessionId}` : ""}`,
+    GET_GROUP_DETAILS: (groupId) => `/api/faculty/groups/group-details/${groupId}`,
     
+
+    /* ============== PROJECTS ============ */
+    GET_PROJECT_BY_ID: (projectId) =>
+      `/api/faculty/projects/${projectId}`,
+    UPDATE_PROJECT: (projectId) =>
+      `/api/faculty/projects/${projectId}`,
+
+    /* ============== TASKS ============ */
+    CREATE_TASK: (projectId) =>
+      `/api/faculty/projects/${projectId}/tasks`,
+    EDIT_TASK: (projectId, itemId) =>
+      `/api/faculty/projects/${projectId}/tasks/${itemId}`,
+    DELETE_TASK: (projectId, itemId) =>
+      `/api/faculty/projects/${projectId}/tasks/${itemId}`,
+
+    /* ============== WORK ITEMS ============ */
+    GET_WORK_ITEMS: (projectId) =>
+      `/api/faculty/projects/${projectId}/work-items`,
+  
+    ADD_FEEDBACK: (projectId, itemId) =>
+      `/api/faculty/projects/${projectId}/work-items/${itemId}/feedback`,
+ 
+    UPDATE_WORK_ITEM_STATUS: (projectId, itemId) =>
+      `/api/faculty/projects/${projectId}/work-items/${itemId}/status`,
+
+    /* ============== PUBLICATIONS ============ */
+    LIST_PUBLICATIONS:    (projectId) => `/api/faculty/projects/${projectId}/publications`,
+    GET_PUBLICATION:      (projectId, pubId) => `/api/faculty/projects/${projectId}/publications/${pubId}`,
+    CREATE_PUBLICATION:   (projectId) => `/api/faculty/projects/${projectId}/publications`,
+    UPDATE_PUBLICATION:   (projectId, pubId) => `/api/faculty/projects/${projectId}/publications/${pubId}`,
+    DELETE_PUBLICATION:   (projectId, pubId) => `/api/faculty/projects/${projectId}/publications/${pubId}`,
+    ADD_REMARK:           (projectId, pubId) => `/api/faculty/projects/${projectId}/publications/${pubId}/remarks`,
   },
-  STUDENT: {
+  STUDENT : {
+
     /* ============== Personal Info and Security ============ */
     GET_PROFILE: "/api/student/profile",
-    UPDATE_PASSWORD:"/api/student/updatePassword",
+    UPDATE_PASSWORD: "/api/student/updatePassword",
 
     /* ============== NOTIFICATIONS ============ */
     GET_NOTIFICATIONS: "/api/student/notifications",
-    
-    /* ============== GROUP FORMATION AND RESPONSE ============ */
+
+    /* ============== CONFIG ============ */
     GET_BTP_CONFIG: "/api/student/btpconfig",
-    GET_AVAILABLE_PROFESSORS: "/api/student/available-professors",
-    SEARCH_MEMBER: (rollNumber) => `/api/student/group-invites/addmember/${rollNumber}`,
-    CREATE_INVITE: "/api/student/group-invites/",
-    GET_INVITES: "/api/student/group-invites/mine",
-    GET_INVITE_BY_ID: (id) => `/api/student/group-invites/${id}`,
-    UPDATE_RESPONSE_INVITE: (id) => `/api/student/group-invites/${id}/member-response`,
-    CANCEL_INVITE: (id) => `/api/student/group-invites/${id}`,
 
-    /* ============== SUPERVISOR SELECTION AND PROJECT PROPOSAL ============ */
-    CREATE_PROJECT_PROPOSAL: "/api/student/project-approval/", // POST
-    GET_PROJECT_PROPOSALS: "/api/student/project-approval/mine", // GET
-    PROJECT_PROPOSAL_DETAIL: (id) => `/api/student/project-approval/${id}`, // GET
-    DELETE_PROJECT_PROPOSAL: (id) => `/api/student/project-approval/${id}`, // DELETE
+    /* ============== GROUP FORMATION AND RESPONSE ============ */
+    GET_GROUP_DETAILS: "/api/student/group",
+    CREATE_GROUP: "/api/student/create-group",
 
-    /* ============== GROUP INFORMATION ============ */
-    GET_MY_GROUP: "/api/student/group"
+    GET_GROUP_INVITES: "/api/student/group/invites",
+    GET_MY_INVITES: "/api/student/group/my-invites",
+
+    SEND_INVITE: "/api/student/group/send-invite",
+
+    RESPOND_INVITE: (inviteId) =>
+      `/api/student/group/respond-invite/${inviteId}`,
+
+    WITHDRAW_INVITE: (inviteId) =>
+      `/api/student/group/withdraw-invite/${inviteId}`,
+
+    REGISTER_GROUP: "/api/student/group/register",
+
+    /* ============== PROJECT PROPOSALS ============ */
+    GET_DEPARTMENTS: "/api/student/project-proposal/departments",
+
+    GET_AVAILABLE_PROF: (departmentId) =>
+      `/api/student/project-proposal/available-professors/${departmentId}`,
+
+    CREATE_REQUEST: "/api/student/project-proposal/create-request",
+
+    GET_MY_REQUESTS: "/api/student/project-proposal/my-requests",
+
+    GET_REQUEST_DETAILS: (inviteId) =>
+      `/api/student/project-proposal/my-requests/${inviteId}`,
+
+    WITHDRAW_REQUEST: (inviteId) =>
+      `/api/student/project-proposal/${inviteId}`,
+
+    /* ============== PROJECTS & WORK (NEW SECTION) ============ */
+
+    GET_MY_PROJECTS: "/api/student/projects/my-projects",
+    GET_PROJECT_DETAILS: (projectId) =>
+      `/api/student/projects/${projectId}`,
+
+    /* Weekly Updates */
+    SUBMIT_WEEKLY_UPDATE: (projectId) =>
+      `/api/student/projects/${projectId}/weekly-updates`,
+
+    EDIT_WEEKLY_UPDATE: (projectId, itemId) =>
+      `/api/student/projects/${projectId}/weekly-updates/${itemId}`,
+
+    GET_WEEKLY_UPDATES: (projectId) =>
+      `/api/student/projects/${projectId}/weekly-updates`,
+
+    /* Tasks */
+    GET_PROJECT_TASKS: (projectId) =>
+      `/api/student/projects/${projectId}/tasks`,
+
+    SUBMIT_TASK: (projectId, itemId) =>
+      `/api/student/projects/${projectId}/tasks/${itemId}/submit`,
+
+    EDIT_TASK_SUBMISSION: (projectId, itemId) =>
+      `/api/student/projects/${projectId}/tasks/${itemId}/submission`,
+
+    /* ============== PUBLICATIONS ============ */
+    LIST_PUBLICATIONS:    (projectId) => `/api/student/projects/${projectId}/publications`,
+    GET_PUBLICATION:      (projectId, pubId) => `/api/student/projects/${projectId}/publications/${pubId}`,
+    CREATE_PUBLICATION:   (projectId) => `/api/student/projects/${projectId}/publications`,
+    UPDATE_PUBLICATION:   (projectId, pubId) => `/api/student/projects/${projectId}/publications/${pubId}`,
+    DELETE_PUBLICATION:   (projectId, pubId) => `/api/student/projects/${projectId}/publications/${pubId}`,
+    ADD_REMARK:           (projectId, pubId) => `/api/student/projects/${projectId}/publications/${pubId}/remarks`,
+
+    /* ================ EXCLUSIVE TO MTECH STUDENTS=============== */
+    SEND_SUPERVISOR_INVITE: "/api/student/mtp/supervisor-request",
 
   },
+
+    
+
+    
+
 };

@@ -18,7 +18,7 @@ import { toast } from "react-hot-toast";
 
 import uploadService from "../../services/Admin/uploadService";
 import departmentService from "../../services/Admin/departmentServices";
-import Header from "../../components/common/Header";
+import Header from "../../components/ui/Header";
 import excelFormat from "../../assets/studentexcelformat.png";
 
 const UploadStudentsPage = () => {
@@ -30,6 +30,7 @@ const UploadStudentsPage = () => {
   const [selectedDept, setSelectedDept] = useState("");
   const [availableSpecs, setAvailableSpecs] = useState([]);
   const [selectedSpec, setSelectedSpec] = useState("");
+  const [selectedProgram, setSelectedProgram] = useState("BTech")
   const [isDragging, setIsDragging] = useState(false);
 
   const fileInputRef = useRef(null);
@@ -87,13 +88,14 @@ const UploadStudentsPage = () => {
   const handleUpload = async (e) => {
     e.preventDefault();
     if (!file) return toast.error("Please select a file");
-    if (!selectedDept || !selectedSpec) return toast.error("Department & Specialization required");
+    if (!selectedDept) return toast.error("Department is required");
+    if (selectedProgram==="BTech" && !selectedSpec) return toast.error("Specialization is required for BTech.")
 
     setLoading(true);
     const toastId = toast.loading("Processing records...");
 
     try {
-      const res = await uploadService.uploadStudents(file, selectedDept, selectedSpec);
+      const res = await uploadService.uploadStudents(file, selectedDept, selectedSpec, selectedProgram);
       if (res.success) {
         setSummary(res.summary);
         toast.success("Import successful!", { id: toastId });
@@ -137,11 +139,26 @@ const UploadStudentsPage = () => {
                     </select>
                   </div>
                 </div>
-
                 <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Specialization</label>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Department</label>
                   <div className="relative">
-                    <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <select
+                      value={selectedProgram}
+                      onChange={(e) => setSelectedProgram(e.target.value)}
+                      className="w-full pl-12 pr-4 h-12 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none appearance-none"
+                    >
+                      <option value="">Select Program</option>
+                      {["BTech", "MTech"].map(d => <option key={d.index} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {selectedProgram === "BTech" && (
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Specialization</label>
+                    <div className="relative">
+                      <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <select
                       value={selectedSpec}
                       onChange={(e) => setSelectedSpec(e.target.value)}
@@ -153,6 +170,7 @@ const UploadStudentsPage = () => {
                     </select>
                   </div>
                 </div>
+                )}
               </div>
             </div>
 
@@ -215,7 +233,7 @@ const UploadStudentsPage = () => {
 
             <button
               onClick={handleUpload}
-              disabled={loading || !file || !selectedDept || !selectedSpec}
+              disabled={loading || !file }
               className="w-full h-16 bg-blue-600 text-white rounded-[1.25rem] font-bold text-lg shadow-xl shadow-blue-200 hover:bg-blue-700 disabled:opacity-40 disabled:shadow-none transition-all flex items-center justify-center gap-3"
             >
               {loading ? <Loader2 className="animate-spin" /> : <CheckCircle2 size={22} />}

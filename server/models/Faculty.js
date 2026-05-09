@@ -19,9 +19,9 @@ const facultySchema = new mongoose.Schema({
     required: true 
   },
   
-  departmentConfig: {
+  department: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "DepartmentConfig",
+    ref: "Department",
     required: true,
   },
 
@@ -33,12 +33,12 @@ const facultySchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Department-wise faculty
-facultySchema.index({ departmentConfig: 1 });
+facultySchema.index({ department: 1 });
 
 // Role-based queries
 facultySchema.index({ roles: 1 });
 
 // Department + Role
-facultySchema.index({ departmentConfig: 1, roles: 1 });
+facultySchema.index({ department: 1, roles: 1 });
 
 export default mongoose.model('Faculty', facultySchema);

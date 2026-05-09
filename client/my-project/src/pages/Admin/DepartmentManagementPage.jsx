@@ -6,7 +6,7 @@ import {
 
 // Services & Components
 import departmentService from "../../services/Admin/departmentServices";
-import Header from "../../components/common/Header";
+import Header from "../../components/ui/Header";
 import ConfirmModal from "../../components/common/ConfirmModal";
 
 const FormInputField = ({ label, value, onChange, placeholder, hint, icon: Icon }) => (

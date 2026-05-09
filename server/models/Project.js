@@ -18,9 +18,9 @@ const projectSchema = new mongoose.Schema(
       required: true,
     },
 
-    semester: {
+     semester: {
       type: Number,
-      enum: [7, 8],
+      enum: [1, 2, 3, 4, 7, 8],
       required: true,
     },
 

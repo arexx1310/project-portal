@@ -1,36 +1,42 @@
 import express from "express";
 
+// Middlewares
 import protect from "../middleware/protect.js";
 import authorize from "../middleware/authorize.js";
+// Multer (for Excel uploads)
+import upload from "../middleware/upload.js";
+
+// Controllers
+
 import { updatePassword } from "../controllers/authController.js";
 
+// Department Information Controllers for Admin
 import { 
   createDepartment,
   getDepartments,
   editDepartment
  } from "../controllers/admin/departmenController.js";
 
-// Session controllers
+// Session Information Controllers
 import {
   createSession,
-  activateSession,
   getSessions,
   getActiveSession,
   deleteSession,
-  deactivateSession
+  deactivateUsers,
+  activateSession
 } from "../controllers/admin/sessionController.js";
 
-// Student controllers
+// Student Information controllers
 import { uploadStudents } from "../controllers/admin/uploadStudent.js";
 import {
   getStudents,
   updateStudent,
-  deleteStudent,
   getStudentStats,
   bulkDeleteStudents,
 } from "../controllers/admin/studentController.js";
 
-// Faculty controllers
+// Faculty Information controllers
 import { uploadFaculty } from "../controllers/admin/uploadFaculty.js";
 import {
   getFaculty,
@@ -40,14 +46,18 @@ import {
   getFacultyStats,
 } from "../controllers/admin/facultyController.js";
 
-// Multer (for Excel uploads)
-import upload from "../middleware/upload.js";
 
+
+// Express Router
 const router = express.Router();
 
+
+// Use middlewares protect and authorize only admin for these routes below
 router.use(protect, authorize("admin"));
 
-router.post("/updatePassword",updatePassword);
+
+/* ================= User Info Routes ================= */
+router.put("/updatePassword",updatePassword);
 
 /* ================= DEPARTMENTS ================= */
 router.get("/departments", getDepartments);
@@ -59,18 +69,17 @@ router.put("/department/:id", editDepartment);
 router.post("/sessions", createSession);
 router.get("/sessions", getSessions);
 router.get("/sessions/active", getActiveSession);
-router.patch("/sessions/:id/activate", activateSession);
-router.patch("/sessions/:id/deactivate",deactivateSession)
+router.patch("/sessions/:id/activate",activateSession);
 router.delete("/sessions/:id/delete",deleteSession);
 
-/* ================= STUDENTS ================= */
+// router.patch("/sessions/:id/deactivate",deactivateUsers);
+
+// ================= STUDENTS ================= */
 router.post("/upload/students/:departmentId", upload.single("file"), uploadStudents);
 router.get("/students", getStudents);
 router.get("/students/stats", getStudentStats);
 router.put("/students/:id", updateStudent);
 router.delete("/students/bulkdelete/:departmentId/:sessionId",bulkDeleteStudents);
-router.delete("/students/:id", deleteStudent);
-
 
 /* ================= FACULTY ================= */
 router.post("/upload/faculty/:departmentId", upload.single("file"), uploadFaculty);

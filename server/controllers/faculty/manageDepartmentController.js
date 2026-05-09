@@ -1,24 +1,25 @@
+import mongoose from "mongoose";
 import Group from "../../models/Group.js";
 import Faculty from "../../models/Faculty.js";
 import Student from "../../models/Student.js";
 import Session from "../../models/Session.js";
 import XLSX from "xlsx";
-import mongoose from "mongoose";
+
 
 export const exportUngroupedStudentsExcel = async (req, res, next) => {
   try {
-    if (!req.faculty || !req.faculty.departmentConfig) {
+    if (!req.faculty || !req.faculty.department) {
       return res.status(403).json({
         success: false,
         message: "Unauthorized access",
       });
     }
 
-    const departmentId = req.faculty.departmentConfig;
+    const departmentId = req.faculty.department;
     const activeSession = await Session.getActiveSession();
 
     const students = await Student.find({
-      departmentConfig: departmentId,
+      department: departmentId,
       session: activeSession._id,
       groupId: null,
       isAvailableForInvite: true
@@ -66,7 +67,7 @@ export const exportUngroupedStudentsExcel = async (req, res, next) => {
 
 export const exportUnsupervisedGroupsExcel = async (req, res, next) => {
   try {
-    if (!req.faculty || !req.faculty.departmentConfig) {
+    if (!req.faculty || !req.faculty.department) {
       return res.status(403).json({
         success: false,
         message: "Unauthorized access",
@@ -89,14 +90,14 @@ export const exportUnsupervisedGroupsExcel = async (req, res, next) => {
       });
     }
 
-    const departmentId = new mongoose.Types.ObjectId(req.faculty.departmentConfig);
+    const departmentId = new mongoose.Types.ObjectId(req.faculty.department);
     const sessionObjId = new mongoose.Types.ObjectId(sessionId);
     const semesterNum = Number(semester);
 
     const groups = await Group.aggregate([
       {
         $match: {
-          departmentConfigs: departmentId,
+          department: departmentId,
           session: sessionObjId,
           status: { $ne: "Draft" },
           supervisors: { $size: 0 },
@@ -128,8 +129,8 @@ export const exportUnsupervisedGroupsExcel = async (req, res, next) => {
       },
       {
         $lookup: {
-          from: "departmentconfigs",
-          localField: "students.departmentConfig",
+          from: "department",
+          localField: "students.department",
           foreignField: "_id",
           as: "studentDepts",
         },
@@ -149,7 +150,7 @@ export const exportUnsupervisedGroupsExcel = async (req, res, next) => {
             (u) => u._id.toString() === student.user.toString()
           );
           const dept = group.studentDepts.find(
-            (d) => d._id.toString() === student.departmentConfig.toString()
+            (d) => d._id.toString() === student.department.toString()
           );
 
           rows.push({
@@ -196,7 +197,8 @@ export const exportUnsupervisedGroupsExcel = async (req, res, next) => {
 
 export const exportFullGroupsDataExcel = async (req, res, next) => {
   try {
-    if (!req.faculty || !req.faculty.departmentConfig) {
+
+    if (!req.faculty || !req.faculty.department) {
       return res.status(403).json({ success: false, message: "Unauthorized" });
     }
 
@@ -216,7 +218,7 @@ export const exportFullGroupsDataExcel = async (req, res, next) => {
       });
     }
 
-    const departmentId = new mongoose.Types.ObjectId(req.faculty.departmentConfig);
+    const departmentId = new mongoose.Types.ObjectId(req.faculty.department);
     const sessionObjId = new mongoose.Types.ObjectId(sessionId);
     const semesterNum = Number(semester);
 
@@ -225,7 +227,7 @@ export const exportFullGroupsDataExcel = async (req, res, next) => {
     const groups = await Group.aggregate([
       {
         $match: {
-          departmentConfigs: departmentId,
+          department: departmentId,
           session: sessionObjId,
           status: { $ne: "Draft" },
           supervisors: { $exists: true, $not: { $size: 0 } },
@@ -255,10 +257,10 @@ export const exportFullGroupsDataExcel = async (req, res, next) => {
       // Join supervisor DepartmentConfig records
       {
         $lookup: {
-          from: "departmentconfigs",
-          localField: "supervisorDocs.departmentConfig",
+          from: "departments",
+          localField: "supervisorDocs.department",
           foreignField: "_id",
-          as: "supervisorDeptConfigs",
+          as: "supervisorDept",
         },
       },
 
@@ -293,10 +295,10 @@ export const exportFullGroupsDataExcel = async (req, res, next) => {
       // Join student DepartmentConfig records
       {
         $lookup: {
-          from: "departmentconfigs",
-          localField: "students.departmentConfig",
+          from: "department",
+          localField: "students.department",
           foreignField: "_id",
-          as: "studentDeptConfigs",
+          as: "studentDept",
         },
       },
 
@@ -337,8 +339,8 @@ export const exportFullGroupsDataExcel = async (req, res, next) => {
       });
 
       const depts = g.supervisorDocs.map((sup) => {
-        const d = g.supervisorDeptConfigs.find(
-          (d) => d._id.toString() === sup.departmentConfig.toString()
+        const d = g.supervisorDept.find(
+          (d) => d._id.toString() === sup.department.toString()
         );
         return d?.department || "N/A";
       });
@@ -380,7 +382,7 @@ export const exportFullGroupsDataExcel = async (req, res, next) => {
             (u) => u._id.toString() === student.user.toString()
           );
           const studentDept = g.studentDeptConfigs.find(
-            (d) => d._id.toString() === student.departmentConfig.toString()
+            (d) => d._id.toString() === student.department.toString()
           );
 
           rows.push({

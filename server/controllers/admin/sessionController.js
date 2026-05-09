@@ -1,8 +1,36 @@
 //controllers/admin/sessionController.js
+
+// Checked 
+
 import mongoose from "mongoose";
-import Student from "../../models/Student.js";
+
 import User from "../../models/User.js";
 import Session from "../../models/Session.js";
+import Student from "../../models/Student.js";
+import Group from "../../models/Group.js";
+import Project from "../../models/Project.js";
+import ProjectApprovalRequest from "../../models/ProjectApprovalRequest.js";
+import GroupInvite from "../../models/GroupFormationInvite.js";
+
+/**
+ * @desc Get all sessions
+ * @route GET /api/admin/sessions 
+ * @access Admin and Faculty
+ */
+export const getSessions = async (req, res, next) => {
+  try {
+    const sessions = await Session.find()
+      .sort({ isActive: -1, academicYear: -1 }) // Active first, then latest year first
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      data: sessions,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 /**
  * @desc Create a new academic session
@@ -145,15 +173,33 @@ export const createSession = async (req, res, next) => {
   }
 };
 
+
+/**
+ * 
+ * @desc Get the active session
+ * @route GET/api/admin/sessions/active
+ * @access Admin
+ */
+export const getActiveSession = async (req, res, next) => {
+  try {
+    const activeSession = await Session.getActiveSession();
+    
+    res.status(200).json({
+      success: true,
+      session: activeSession || null,
+      isInitialSetup: !activeSession // Helpful flag for the UI
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 /**
  * @desc Activate a session (only one active at a time)
  * @route PATCH /api/admin/sessions/:id/activate
  * @access Admin
  */
-
 export const activateSession = async (req, res, next) => {
-  const mongoSession = await mongoose.startSession();
-
   try {
     const { id } = req.params;
 
@@ -165,61 +211,97 @@ export const activateSession = async (req, res, next) => {
       });
     }
 
+    const session = await Session.findById(id);
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found",
+      });
+    }
+
+    if (session.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: "Session already active",
+      });
+    }
+
+    //  Deactivate all sessions
+    await Session.updateMany(
+      { isActive: true },
+      { $set: { isActive: false } }
+    );
+
+    //  Activate selected session
+    session.isActive = true;
+    await session.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Session activated successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 
+ * @desc Get the active session
+ * @route DELETE/api/admin/sessions/:id/delete
+ * @access Admin
+ */
+export const deleteSession = async (req, res, next) => {
+  const mongoSession = await mongoose.startSession();
+  try {
+
+    const { id } = req.params;
+
+    // Validate object id 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Invalid session ID" });
+    }
+
+    // Fetch session data by id
+    const session = await Session.findById(id);
+    if (!session) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Session not found" 
+      });
+    }
+    
+    
+    const fiveDaysAfterStart = new Date(session.oddSemester.startDate);
+    fiveDaysAfterStart.setDate(fiveDaysAfterStart.getDate() + 5);
+
+    if (new Date() > fiveDaysAfterStart) {
+      return res.status(400).json({
+        success: false,
+        message: "Session has already progressed beyond allowed deletion window.",
+      });
+    }
+
     await mongoSession.withTransaction(async () => {
-
-      // Fetch requested session inside transaction
-      const session = await Session.findById(id).session(mongoSession);
-
-      if (!session) {
-        return res.status(404).json({ 
-          success: false,
-          message: "Session not found" 
-        });
-      }
-      
-
-      // Check if another session is active
-      const activeSession = await Session.findOne({ isActive: true })
-        .session(mongoSession);
-
-      if (activeSession && activeSession._id.toString() !== id) {
-        return res.status(409).json({ 
-          success: false,
-          message: "Another session is currently active. Please deactivate it first." 
-        });
-      }
-
-      if (session.isActive) {
-        return res.status(400).json({ 
-          success: false,
-          message: "Session already active" 
-        });
-      }
-
-      // Activate session
-      session.isActive = true;
-      await session.save({ session: mongoSession });
-
-      // Activate related students' users
-      const students = await Student.find({ session: session._id })
+      const students = await Student.find({ session: id })
         .select("user")
         .session(mongoSession);
 
       const userIds = students.map((s) => s.user);
 
-      if (userIds.length > 0) {
-        await User.updateMany(
-          { _id: { $in: userIds } },
-          { $set: { isActive: true } },
-          { session: mongoSession }
-        );
-      }
+      await Student.deleteMany({ session: id }).session(mongoSession);
+      await User.deleteMany({ _id: { $in: userIds }, role: "student" }).session(mongoSession);
+      await Group.deleteMany({ session: id }).session(mongoSession);
+      await Project.deleteMany({ session: id }).session(mongoSession);
+      await ProjectApprovalRequest.deleteMany({}).session(mongoSession);
+      await GroupInvite.deleteMany({}).session(mongoSession);
+      await Session.deleteOne({ _id: id }).session(mongoSession);
     });
 
-    res.status(200).json({
-      success: true,
-      message: "Session activated and related users activated.",
-    });
+    res.status(200).json({ 
+      success: true, 
+      message: "Session and related data deleted successfully" });
 
   } catch (error) {
     next(error);
@@ -227,12 +309,14 @@ export const activateSession = async (req, res, next) => {
     mongoSession.endSession();
   }
 };
+
+
 /**
- * @desc Deactivae a session (only one active at a time)
- * @route PATCH /api/admin/sessions/:id/deactivate
+ * @desc Activae students of a session
+ * @route PATCH /api/admin/sessions/:id/activate-users
  * @access Admin
  */
-export const deactivateSession = async (req, res, next) => {
+export const activateUsers = async (req, res, next) => {
   const mongoSession = await mongoose.startSession();
 
   try {
@@ -260,16 +344,71 @@ export const deactivateSession = async (req, res, next) => {
         });
       }
 
-      if (!session.isActive) {
-        return res.status(400).json({
+      //Find related students
+      const students = await Student.find({ session: session._id })
+        .select("user")
+        .session(mongoSession);
+
+      const userIds = students.map((s) => s.user);
+
+      // Activate related users only if exist
+      if (userIds.length > 0) {
+        const result = await User.updateMany(
+          { _id: { $in: userIds } },
+          { $set: { isActive: true } },
+          { session: mongoSession }
+        );
+        modifiedUsers = result.modifiedCount;
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Session and all related student accounts activated successfully",
+      modifiedUsers,
+    });
+
+  } catch (error) {
+    next(error);
+  } finally {
+    mongoSession.endSession();
+  }
+};
+
+
+// CHANGED IT TO DEACTIVATE USERS 
+/**
+ * @desc Deactivae students of a session
+ * @route PATCH /api/admin/sessions/:id/deactivate-users
+ * @access Admin
+ */
+export const deactivateUsers = async (req, res, next) => {
+  const mongoSession = await mongoose.startSession();
+
+  try {
+    const { id } = req.params;
+
+    //Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid session ID",
+      });
+    }
+
+    let modifiedUsers = 0;
+
+    await mongoSession.withTransaction(async () => {
+
+      //Fetch session inside transaction
+      const session = await Session.findById(id).session(mongoSession);
+
+      if (!session) {
+        return res.status(404).json({
             success: false,
-            message: "Session already inactive",
+            message: "Session not found",
         });
       }
-
-      //Deactivate session
-      session.isActive = false;
-      await session.save({ session: mongoSession });
 
       //Find related students
       const students = await Student.find({ session: session._id })
@@ -295,88 +434,6 @@ export const deactivateSession = async (req, res, next) => {
       modifiedUsers,
     });
 
-  } catch (error) {
-    next(error);
-  } finally {
-    mongoSession.endSession();
-  }
-};
-
-/**
- * @desc Get all sessions
- * @route GET /api/admin/sessions GET /api/admin/sessions
- * @access Admin and Faculty
- */
-export const getSessions = async (req, res, next) => {
-  try {
-    const sessions = await Session.find()
-      .sort({ isActive: -1, academicYear: -1 }) // Active first, then latest year first
-      .lean();
-
-    res.status(200).json({
-      success: true,
-      data: sessions,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * 
- * @desc Get the active session
- * @route GET/api/admin/sessions/active
- * @access Admin
- */
-export const getActiveSession = async (req, res, next) => {
-  try {
-    const activeSession = await Session.getActiveSession();
-    
-    res.status(200).json({
-      success: true,
-      session: activeSession || null,
-      isInitialSetup: !activeSession // Helpful flag for the UI
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * 
- * @desc Get the active session
- * @route DELETE/api/admin/sessions/:id/delete
- * @access Admin
- */
-export const deleteSession = async (req, res, next) => {
-  const mongoSession = await mongoose.startSession();
-  try {
-    const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: "Invalid session ID" });
-    }
-
-    const session = await Session.findById(id);
-    if (!session) {
-      return res.status(404).json({ success: false, message: "Session not found" });
-    }
-    if (session.isActive) {
-      return res.status(400).json({ success: false, message: "Deactivate session before deleting" });
-    }
-
-    await mongoSession.withTransaction(async () => {
-      const students = await Student.find({ session: id })
-        .select("user")
-        .session(mongoSession);
-
-      const userIds = students.map((s) => s.user);
-
-      await Student.deleteMany({ session: id }).session(mongoSession);
-      await User.deleteMany({ _id: { $in: userIds }, role: "student" }).session(mongoSession);
-      await Session.deleteOne({ _id: id }).session(mongoSession);
-    });
-
-    res.status(200).json({ success: true, message: "Session and related data deleted successfully" });
   } catch (error) {
     next(error);
   } finally {

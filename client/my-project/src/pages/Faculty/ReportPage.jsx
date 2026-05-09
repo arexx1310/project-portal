@@ -5,7 +5,7 @@ import {
   Users, FileSpreadsheet, Download, Loader2, 
   CheckCircle2, AlertCircle, Calendar, GraduationCap, FileText 
 } from "lucide-react";
-import Header from "../../components/common/Header";
+import Header from "../../components/ui/Header";
 import { toast } from "react-hot-toast";
 
 const EXPORT_CARDS = [

@@ -3,7 +3,7 @@ import { toast } from "react-hot-toast";
 import { ShieldCheck, Lock, Save, Loader2, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import profileService from "../../services/Student/profileService";
-import Header from "../../components/common/Header";
+import Header from "../../components/ui/Header";
 
 const ChangePasswordStudent = () => {
   const navigate = useNavigate();

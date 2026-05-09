@@ -40,23 +40,20 @@ const projectApprovalRequestSchema = new mongoose.Schema(
     project: {
       title: {
         type: String,
-        required: true,
         trim: true,
       },
       description: {
         type: String,
-        required: true,
         trim: true,
       },
       domain: {
         type: String,
-        required: true,
         trim: true,
       },
       semester: {
         type: Number,
-        enum: [7, 8],
-        required: true,
+        enum: [7,8,1,2,3,4],
+        
       },
     },
 
@@ -86,6 +83,11 @@ const projectApprovalRequestSchema = new mongoose.Schema(
       ref: "Faculty",
       default: null,
     },
+
+    expiresAt: {
+      type: Date,
+      default: null,
+    }
   },
   { timestamps: true }
 );
@@ -94,6 +96,11 @@ const projectApprovalRequestSchema = new mongoose.Schema(
 
 projectApprovalRequestSchema.index({ group: 1, status: 1 });
 projectApprovalRequestSchema.index({ "supervisorInvites.faculty": 1, status: 1 });
+
+projectApprovalRequestSchema.index(
+  { expiresAt: 1 },
+  { expireAfterSeconds: 0 }  // delete exactly at the expiresAt time
+);
 
 /* ── virtual ───────────────────────── */
 

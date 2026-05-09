@@ -32,17 +32,44 @@ export const sendNotification = async (
 
 export const getNotifications = async (req, res, next) => {
   try {
-    const notifications = await UserNotification.find({ recipient: req.user.id })
-      .populate("event")
+    const notifications = await UserNotification.find({
+      recipient: req.user.id,
+    })
+      .populate({
+        path: "event",
+        select: "type message triggeredBy",
+        populate: {
+          path: "triggeredBy",
+          select: "name email",
+        },
+      })
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
 
-    res.status(200).json({ success: true, data: notifications });
+    res.status(200).json({
+      success: true,
+      data: notifications.map((n) => ({
+        type: n.event?.type,
+        message: n.event?.message,
+
+        triggeredBy: n.event?.triggeredBy
+          ? {
+              name: n.event.triggeredBy.name,
+              email: n.event.triggeredBy.email,
+            }
+          : null,
+        // 🕒 Date + Time
+        createdAt: n.createdAt,
+        date: new Date(n.createdAt).toLocaleDateString(),
+        time: new Date(n.createdAt).toLocaleTimeString(),
+      })),
+    });
   } catch (error) {
     next(error);
   }
 };
+
 
 
 

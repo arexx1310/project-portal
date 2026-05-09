@@ -8,7 +8,7 @@ import { toast } from "react-hot-toast";
 
 import facultyService from "../../services/Admin/facultyService";
 import departmentService from "../../services/Admin/departmentServices";
-import Header from "../../components/common/Header";
+import Header from "../../components/ui/Header";
 import ConfirmModal from "../../components/common/ConfirmModal";
 
 const AVAILABLE_ROLES = ["HOD", "BTP_COMMITTEE_HEAD", "BTP_COMMITTEE_MEMBER"];
@@ -127,7 +127,7 @@ const ManageFacultyPage = () => {
   const filteredFaculty = useMemo(() => {
     return facultyList.filter((f) => {
       const matchesSearch = !debouncedSearch || f.user?.name?.toLowerCase().includes(debouncedSearch.toLowerCase()) || f.staffId?.toString().includes(debouncedSearch);
-      const matchesDept = filterDept === "All" || f.departmentConfig?.department === filterDept;
+      const matchesDept = filterDept === "All" || f.department?.department === filterDept;
       return matchesSearch && matchesDept;
     });
   }, [facultyList, debouncedSearch, filterDept]);
@@ -161,7 +161,7 @@ const ManageFacultyPage = () => {
             <input type="text" placeholder="Search name or ID..." className="w-full pl-16 pr-6 h-16 bg-slate-50 border-none rounded-[1.5rem] font-bold outline-none focus:ring-2 focus:ring-blue-500" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
           <div className="flex-1">
-            <FilterDropdown value={filterDept} onChange={setFilterDept} options={[...new Set(facultyList.map(f => f.departmentConfig?.department))].map(d => ({label: d, value: d}))} placeholder="All Departments" showAll />
+            <FilterDropdown value={filterDept} onChange={setFilterDept} options={[...new Set(facultyList.map(f => f.department?.department))].map(d => ({label: d, value: d}))} placeholder="All Departments" showAll />
           </div>
         </div>
 
@@ -194,7 +194,7 @@ const ManageFacultyPage = () => {
                         </div>
                       </td>
                       <td className="px-8 py-5 text-xs font-bold text-slate-600">{f.staffId}</td>
-                      <td className="px-8 py-5"><span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-[10px] font-black uppercase">{f.departmentConfig?.department || "—"}</span></td>
+                      <td className="px-8 py-5"><span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-[10px] font-black uppercase">{f.department?.department || "—"}</span></td>
                       <td className="px-8 py-5">
                         <div className="flex flex-wrap gap-1">
                           {f.roles?.length > 0 ? f.roles.map(r => (

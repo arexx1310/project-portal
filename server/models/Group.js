@@ -7,13 +7,20 @@ const groupSchema = new mongoose.Schema(
       required: true,
     },
 
-    departmentConfigs: [
+    departments: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'DepartmentConfig',
+        ref: 'Department',
         required: true,
       },
     ],
+
+    programType: {
+      type: String,
+      enum: ["UG", "PG"],
+      required: true,
+      default: "UG",
+    },
 
     session: {
       type: mongoose.Schema.Types.ObjectId,
@@ -38,6 +45,6 @@ const groupSchema = new mongoose.Schema(
 );
 
 groupSchema.index({ name: 1, session: 1 }, { unique: true });
-groupSchema.index({ departmentConfig: 1, session: 1 });
+groupSchema.index({ department: 1, session: 1 });
 
 export default mongoose.model('Group', groupSchema);

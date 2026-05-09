@@ -2,7 +2,8 @@ import Student from "../../models/Student.js";
 import Session from "../../models/Session.js";
 import mongoose from "mongoose";
 import User from "../../models/User.js";
-import DepartmentConfig from "../../models/DepartmentConfig.js";
+import Department from "../../models/DepartmentConfig.js";
+
 /**
  * @desc Get students with filters (session, department, pagination)
  * @route GET /api/admin/students?session=xxx&department=xxx&page=1&limit=20
@@ -11,7 +12,7 @@ import DepartmentConfig from "../../models/DepartmentConfig.js";
 
 export const getStudents = async (req, res, next) => {
   try {
-    let { search, session, departmentConfig, page, limit } = req.query;
+    let { search, session, department, page, limit } = req.query;
 
     // Pagination safety
     page = Math.max(1, parseInt(page) || 1);
@@ -19,16 +20,20 @@ export const getStudents = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     let filter = {}
+
     // Session filter
     if (session) {
-      // Added ObjectId validation
+
+      // ObjectId validation
       if (!mongoose.Types.ObjectId.isValid(session)) {
         return res.status(400).json({
           success: false,
           message: "Invalid session ID",
         });
       }
+
       filter.session = new mongoose.Types.ObjectId(session);
+
     } else {
       // Only fetch active session if not provided
       const activeSession = await Session.getActiveSession();
@@ -42,7 +47,7 @@ export const getStudents = async (req, res, next) => {
     }
 
   
-    if (departmentConfig) {
+    if (department) {
       // Added missing validation
       if (!mongoose.Types.ObjectId.isValid(departmentConfig)) {
         return res.status(400).json({
@@ -50,7 +55,7 @@ export const getStudents = async (req, res, next) => {
           message: "Invalid departmentConfig ID",
         });
       }
-      filter.departmentConfig = new mongoose.Types.ObjectId(departmentConfig);
+      filter.department = new mongoose.Types.ObjectId(department);
     }
 
     // Aggregation pipeline
@@ -71,8 +76,8 @@ export const getStudents = async (req, res, next) => {
       // Join DepartmentConfig to get department name
       {
         $lookup: {
-          from: "departmentconfigs",
-          localField: "departmentConfig",
+          from: "departments",
+          localField: "department",
           foreignField: "_id",
           as: "dept",
         },
@@ -111,7 +116,7 @@ export const getStudents = async (req, res, next) => {
                 semester: 1,
                 specialization: 1,
                 department: "$dept.department",
-                departmentConfig: 1,
+                departmentId: "$dept._id",
                 user: {
                   name: "$userDetails.name",
                   email: "$userDetails.email",
@@ -141,16 +146,18 @@ export const getStudents = async (req, res, next) => {
     next(error);
   }
 };
+
 /**
- * @desc Update student (phoneNumber, department, specialization only)
+ * @desc Update student (email, name, rollNumber, phoneNumber)
  * @route PUT /api/admin/students/:id
  * @access Admin
  */
 export const updateStudent = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { phoneNumber, semester } = req.body;
+    let { email, name, rollNumber, phoneNumber } = req.body;
 
+    // ================= 1. Validate ID =================
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
@@ -158,100 +165,104 @@ export const updateStudent = async (req, res, next) => {
       });
     }
 
-    if (!phoneNumber || semester === undefined) {
+    // ================= 2. Check required fields =================
+    if (!email || !name || !rollNumber || !phoneNumber) {
       return res.status(400).json({
         success: false,
-        message: "phoneNumber and semester are required",
+        message: "All fields are required: email, name, rollNumber, phoneNumber",
       });
     }
 
-     const student = await Student.findByIdAndUpdate(
-      id,
-      { phoneNumber, semester },
+    // ================= 3. Type validation =================
+    if (
+      typeof email !== "string" ||
+      typeof name !== "string" ||
+      typeof rollNumber !== "string" ||
+      typeof phoneNumber !== "string"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields must be strings",
+      });
+    }
+
+    // ================= 4. Sanitize =================
+    email = email.trim().toLowerCase();
+    name = name.trim();
+    rollNumber = rollNumber.trim();
+    phoneNumber = phoneNumber.trim();
+
+    // ================= 5. Format validation =================
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^[6-9]\d{9}$/; // Indian format
+    const rollRegex = /^[a-zA-Z0-9_-]+$/;
+
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email format",
+      });
+    }
+
+    if (!phoneRegex.test(phoneNumber)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid phone number (must be 10 digits)",
+      });
+    }
+
+    if (!rollRegex.test(rollNumber)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid roll number format",
+      });
+    }
+
+    // ================= 6. Find student =================
+    const student = await Student.findById(id);
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found",
+      });
+    }
+
+    // ================= 7. Update Student =================
+    student.rollNumber = rollNumber;
+    student.phoneNumber = phoneNumber;
+    await student.save();
+
+    // ================= 8. Update User =================
+    await User.findByIdAndUpdate(
+      student.user,
+      { email, name },
       { new: true, runValidators: true }
-    )
+    );
+
+    // ================= 9. Fetch updated =================
+    const updatedStudent = await Student.findById(id)
       .populate("user", "name email")
       .populate("session", "name academicYear")
-      .populate("departmentConfig", "department")
-      .lean(); 
+      .populate("department", "department")
+      .lean();
 
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: "Student not found",
-      });
-    }
-    
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      data: student,
+      data: updatedStudent,
       message: "Student updated successfully",
     });
+
   } catch (error) {
     next(error);
   }
 };
-
-/**
- * @desc Delete a student by ID
- * @route DELETE /api/admin/students/:id
- * @access Admin
- */
-export const deleteStudent = async (req, res, next) => {
-  const dbSession = await mongoose.startSession();
-
-  try {
-    const { id } = req.params;
-
-    // ✅ ObjectId validation added
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid student ID",
-      });
-    }
-
-    dbSession.startTransaction();
-
-    const student = await Student.findById(id)
-      .select("user")
-      .session(dbSession);
-
-    if (!student) {
-      await dbSession.abortTransaction();
-      return res.status(404).json({
-        success: false,
-        message: "Student not found",
-      });
-    }
-
-    await Student.deleteOne({ _id: id }).session(dbSession);
-
-    if (student.user) {
-      await User.deleteOne({ _id: student.user }).session(dbSession);
-    }
-
-    await dbSession.commitTransaction();
-  
-    res.status(200).json({
-      success: true,
-      message: "Student and associated user account deleted successfully",
-    });
-  } catch (error) {
-    await dbSession.abortTransaction();
-    next(error);
-  } finally {
-    dbSession.endSession();
-  }
-};
-
 
 /**
  * @desc Bulk delete student by department
  * @route DELETE /api/admin/students/bulkdelete/:departmentId/:sessionId
  * @access Admin
  */
-
 export const bulkDeleteStudents = async (req, res, next) => {
   const dbSession = await mongoose.startSession();
 
@@ -273,7 +284,7 @@ export const bulkDeleteStudents = async (req, res, next) => {
 
     // Get students for given filters
     const students = await Student.find({
-      departmentConfig: departmentId,
+      department: departmentId,
       session: sessionId,
     })
       .select("_id user")
@@ -388,7 +399,7 @@ export const getStudentStats = async (req, res, next) => {
         {
           $lookup: {
             from: "departmentconfigs",
-            localField: "departmentConfig",
+            localField: "department",
             foreignField: "_id",
             as: "dept",
           },

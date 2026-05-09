@@ -1,338 +1,218 @@
 import { useState, useEffect, useCallback } from "react";
+
 import { 
-  FileText, 
-  Users, 
-  ArrowLeft, 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
-  ShieldAlert,
-  Calendar,
-  ChevronRight,
-  Mail,
-  GraduationCap,
-  MessageSquare,
-  Filter,
-  Info
+  FileStack, ArrowLeft, CheckCircle2, XCircle, AlertCircle , ShieldAlert
 } from "lucide-react";
-import supervisionRequestService from "../../services/Faculty/supervisionRequestService";
 import { toast } from "react-hot-toast";
 
 // UI Components
-import Header from "../../components/common/Header";
+import Header from "../../components/ui/Header";
+import Loader from "../../components/ui/Loader";
+import ProposalCard from "../../components/common/Proposal/ProposalCard";
+import ProposalDetail from "../../components/common/Proposal/ProposalDetails";
 import ConfirmModal from "../../components/common/ConfirmModal";
 
-// ─── Constants & Styles ────────────────────────────────────────────────────
-const STATUS_STYLES = {
-  PendingSupervisorApproval: { label: "Pending Approval", color: "bg-amber-50 text-amber-700 border-amber-200", icon: Clock },
-  Approved: { label: "Approved", color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
-  Rejected: { label: "Rejected", color: "bg-rose-50 text-rose-700 border-rose-200", icon: XCircle },
-  Pending: { label: "Action Required", color: "bg-blue-50 text-blue-700 border-blue-200", icon: Info },
-  Accepted: { label: "Accepted", color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
-};
+// Services
+import proposalService from "../../services/Faculty/proposalService";
 
-const getBadge = (status) => {
-  const style = STATUS_STYLES[status] || STATUS_STYLES.Pending;
-  const Icon = style.icon;
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${style.color}`}>
-      <Icon size={14} />
-      {style.label}
-    </span>
-  );
-};
+const SupervisorRequestPage = ({isPG = false}) => {
 
-// ─── RequestRow ────────────────────────────────────────────────────────────
-function RequestRow({ request, onView }) {
-  return (
-    <div className="bg-white p-5 rounded-xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 group hover:border-blue-300 transition-all shadow-sm">
-      <div className="flex items-center gap-4">
-        <div className="p-3.5 rounded-xl bg-slate-50 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-          <FileText size={24} />
-        </div>
-        <div>
-          <h4 className="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">
-            {request.project?.title || "Untitled Project"}
-          </h4>
-          <div className="flex flex-wrap items-center gap-3 mt-1">
-             <span className="text-blue-600 text-xs font-bold bg-blue-50 px-2 py-0.5 rounded">
-               {request.group?.name}
-             </span>
-            {getBadge(request.myStatus)}
-            <span className="text-slate-400 text-xs flex items-center gap-1 font-medium">
-              <Calendar size={13} /> Created At: {new Date(request.createdAt).toLocaleDateString()}
-            </span>
-          </div>
-        </div>
-      </div>
-      
-      <button 
-        onClick={() => onView(request._id)}
-        className="px-5 py-2.5 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-blue-600 transition-all flex items-center justify-center gap-2"
-      >
-        Review <ChevronRight size={16} />
-      </button>
-    </div>
-  );
-}
-
-// ─── RequestDetail ─────────────────────────────────────────────────────────
-function RequestDetail({ request, onBack, onRespond, responding }) {
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState("");
-
-  if (!request) return null;
-
-  const canRespond = request.myStatus === "Pending" && request.overallStatus === "PendingSupervisorApproval";
-
-  const handleRejectConfirm = () => {
-    if (!rejectionReason.trim()) return toast.error("Please provide a reason.");
-    onRespond(request._id, "reject", rejectionReason);
-    setShowRejectModal(false);
-  };
-
-  return (
-    <div className="w-full mx-auto space-y-6 animate-in fade-in duration-500">
-      <button onClick={onBack} className="flex items-center gap-2 text-slate-500 hover:text-blue-600 font-bold text-sm transition-colors group">
-        <ArrowLeft size={18} /> Back to Requests
-      </button>
-
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-        {/* Header Section */}
-        <div className="bg-slate-900 p-8 md:p-10 text-white">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 uppercase tracking-wider">
-                  Request Details
-                </span>
-                {getBadge(request.overallStatus)}
-              </div>
-              <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight">
-                {request.project?.title}
-              </h2>
-              <div className="flex flex-wrap items-center gap-4 text-slate-400 text-sm font-medium">
-                <span className="px-3 py-1 bg-white/10 rounded-lg text-white/80">{request.project?.domain}</span>
-                <span className="flex items-center gap-1.5"><Calendar size={16} /> Submitted {new Date(request.createdAt).toLocaleDateString()}</span>
-              </div>
-            </div>
-
-            {canRespond && (
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button 
-                  onClick={() => onRespond(request._id, "accept", null)}
-                  disabled={responding}
-                  className="px-8 py-3.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20 disabled:opacity-50"
-                >
-                  {responding === "accept" ? "Processing..." : "Accept Request"}
-                </button>
-                <button 
-                  onClick={() => setShowRejectModal(true)}
-                  disabled={responding}
-                  className="px-8 py-3.5 bg-white/10 text-white rounded-xl text-sm font-bold hover:bg-white/20 transition-all border border-white/10"
-                >
-                  Decline
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="p-8 md:p-10 grid grid-cols-1 lg:grid-cols-3 gap-10">
-          <div className="lg:col-span-2 space-y-10">
-            <section>
-              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <FileText size={18} className="text-blue-600" /> Project Description
-              </h3>
-              <div className="text-slate-600 leading-relaxed font-medium bg-slate-50 p-6 rounded-xl border border-slate-100">
-                {request.project?.description}
-              </div>
-            </section>
-
-            <section>
-              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <Users size={18} className="text-blue-600" /> Student Group: {request.group?.name}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {request.students?.map((s, i) => (
-                  <div key={i} className="p-5 bg-white border border-slate-200 rounded-xl hover:border-blue-200 transition-all shadow-sm">
-                    <p className="font-bold text-slate-900 text-base">{s.name}</p>
-                    <p className="text-blue-600 font-mono text-xs font-bold mt-0.5">{s.rollNumber}</p>
-                    <div className="mt-4 space-y-2">
-                      <div className="text-slate-500 text-xs flex items-center gap-2 font-medium">
-                        <Mail size={14} className="text-slate-400" /> {s.email}
-                      </div>
-                      <div className="text-slate-500 text-xs flex items-center gap-2 font-medium">
-                        <GraduationCap size={14} className="text-slate-400" /> Sem {s.semester} • {s.specialization || "General"}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
-
-          <div className="space-y-6">
-            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Review Status</h3>
-              <div className="space-y-4">
-                {request.supervisors?.map((s, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200">
-                    <span className="font-bold text-slate-700 text-sm">{s.name}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                      s.status === 'Accepted' ? 'bg-emerald-50 text-emerald-600' : 
-                      s.status === 'Rejected' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'
-                    }`}>
-                      {s.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {request.myRejectionReason && (
-                <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl mt-6">
-                  <p className="text-[10px] font-bold text-rose-600 uppercase mb-1">Your Rejection Reason</p>
-                  <p className="text-xs text-rose-700 font-medium italic">{request.myRejectionReason}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <ConfirmModal
-        isOpen={showRejectModal}
-        onClose={() => setShowRejectModal(false)}
-        onConfirm={handleRejectConfirm}
-        title="Reason for Decline"
-        message="Please provide a brief reason for rejecting this request. This helps students understand why and improve their next proposal."
-        theme="red"
-        loading={responding === "reject"}
-      >
-        <textarea
-          className="w-full mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-500/20 outline-none transition-all"
-          rows={3}
-          placeholder="e.g., Domain mismatch, too many active projects..."
-          value={rejectionReason}
-          onChange={(e) => setRejectionReason(e.target.value)}
-        />
-      </ConfirmModal>
-    </div>
-  );
-}
-
-// ─── Main Page ─────────────────────────────────────────────────────────────
-const SupervisionRequestsPage = () => {
-  const [view, setView] = useState("list");
-  const [requests, setRequests] = useState([]);
-  const [listLoading, setListLoading] = useState(false);
-
-  const [selected, setSelected] = useState(null);
+  // State
+  const [proposals, setProposals] = useState([]);
+  const [selectedProposal, setSelectedProposal] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [responding, setResponding] = useState(null);
+  const [view, setView] = useState("list");
 
-  const fetchRequests = useCallback(async () => {
+  // Modal State for Action (Accept/Reject)
+  const [actionModal, setActionModal] = useState({ isOpen: false, type: null });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+ const fetchProposals = useCallback(async () => {
+    setLoading(true);
     try {
-      setListLoading(true);
-      const res = await supervisionRequestService.getAllRequests();
-      setRequests(res.data || []);
+      const res = await proposalService.getMyRequests(isPG);
+      if (res.success) {
+        setProposals(res.data);
+      }
     } catch (err) {
-      toast.error("Failed to load requests.");
+      toast.error("Failed to load supervision requests");
     } finally {
-      setListLoading(false);
+      setLoading(false);
     }
-  }, []);
+  }, [isPG]); // ← add isPG here
 
-  useEffect(() => { fetchRequests(); }, [fetchRequests]);
+  useEffect(() => {
+    fetchProposals();
+  }, [fetchProposals]);
 
-  const handleView = async (id) => {
-    setView("detail");
+  const handleViewDetails = async (proposal) => {
     setDetailLoading(true);
+    setView("detail");
     try {
-      const res = await supervisionRequestService.getRequestDetails(id);
-      setSelected(res.data);
+      const res = await proposalService.getRequestDetails(proposal._id);
+      if (res.success) {
+        setSelectedProposal(res.data);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     } catch (err) {
-      toast.error("Could not load details.");
+      toast.error("Could not fetch request details");
       setView("list");
     } finally {
       setDetailLoading(false);
     }
   };
 
-  const handleRespond = async (id, action, rejectionReason) => {
+  const handleBackToList = () => {
+    setView("list");
+    setSelectedProposal(null);
+  };
+
+  const handleRespond = async () => {
+    setIsSubmitting(true);
     try {
-      setResponding(action);
-      const payload = { action, ...(rejectionReason && { rejectionReason }) };
-      await supervisionRequestService.responseRequest(id, payload);
-      toast.success(`Request ${action === 'accept' ? 'accepted' : 'rejected'}`);
-      const res = await supervisionRequestService.getRequestDetails(id);
-      setSelected(res.data);
-      fetchRequests();
+      console.log(selectedProposal._id);
+      const responseData = { action: actionModal.type }; // "accept" or "reject"
+      const res = !isPG ?  await proposalService.respondToRequest(selectedProposal._id, responseData) :
+        await proposalService.respondToMTPRequest(selectedProposal._id, responseData);
+      
+      if (res.success) {
+        toast.success(`Proposal ${actionModal.type === 'accept' ? 'accepted' : 'rejected'} successfully`);
+        handleBackToList();
+        fetchProposals();
+      }
     } catch (err) {
-      toast.error(err?.message || "Operation failed.");
+      toast.error(err?.message || `Failed to ${actionModal.type} proposal`);
     } finally {
-      setResponding(null);
+      setIsSubmitting(false);
+      setActionModal({ isOpen: false, type: null });
     }
   };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-20">
-      <div className="max-w-8xl mx-auto space-y-6 md:space-y-8 p-4 md:p-6">
-        <Header 
-          title="Supervision Requests" 
-          subtitle="Review and respond to new project mentorship proposals" 
-          icon={GraduationCap} 
-        />
+      <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-8">
+        
+        {/* ─── HEADER ─── */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <Header 
+            title={view === "detail" ? "Request Review" : "Supervision Requests"} 
+            subtitle={view === "detail" ? "Review student proposal and take action" : "Manage incoming project supervision requests from students"} 
+            icon={FileStack}
+          />
+          
+          {view === "detail" && (
+            <button 
+              onClick={handleBackToList}
+              className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm"
+            >
+              <ArrowLeft size={16} />
+              Back to List
+            </button>
+          )}
+        </div>
 
-        {view === "list" && (
-          <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-                  <MessageSquare size={24} />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">Request Inbox</h2>
-                  <p className="text-slate-500 font-medium text-xs">
-                    {requests.filter(r => r.myStatus === "Pending").length} pending requests
-                  </p>
-                </div>
+        {/* ─── MAIN CONTENT ─── */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-32 bg-white">
+            <Loader fullScreen={false} />
+          </div>
+        ) : view === "detail" ? (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {detailLoading ? (
+              <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[3rem] border border-slate-100">
+                <Loader fullScreen={false} />
               </div>
+            ) : (
+                <>
+                  {/* ─── ACTION BAR (Above Content) ─── */}
+                  {selectedProposal?.status === "PendingSupervisorApproval" && (
+                    <div className="bg-white border border-slate-200 rounded-[2.5rem] p-4 md:p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
+                      <div className="flex items-center gap-4">
+                        <div className="hidden md:flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+                          <ShieldAlert size={24} />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">Action Required</h4>
+                          <p className="text-xs font-medium text-slate-500">Please review the details below before making a decision.</p>
+                        </div>
+                      </div>
 
-            </div>
+                      <div className="flex items-center gap-3 w-full sm:w-auto">
+                        <button
+                          onClick={() => setActionModal({ isOpen: true, type: "reject" })}
+                          className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3.5 bg-rose-50 text-rose-600 border border-rose-100 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-rose-100 hover:border-rose-200 transition-all active:scale-95"
+                        >
+                          <XCircle size={16} strokeWidth={2.5} />
+                          Reject
+                        </button>
 
-            <div className="grid grid-cols-1 gap-4">
-              {listLoading ? (
-                <div className="py-20 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div></div>
-              ) : requests.length === 0 ? (
-                <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-20 text-center">
-                  <ShieldAlert size={40} className="mx-auto text-slate-200 mb-4" />
-                  <p className="text-slate-500 font-bold">No mentorship requests found.</p>
-                </div>
-              ) : (
-                requests.map((request) => (
-                  <RequestRow key={request._id} request={request} onView={handleView} />
-                ))
+                        <button
+                          onClick={() => setActionModal({ isOpen: true, type: "accept" })}
+                          className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3.5 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-indigo-600 transition-all active:scale-95 shadow-lg shadow-slate-200 hover:shadow-indigo-100"
+                        >
+                          <CheckCircle2 size={16} strokeWidth={2.5} />
+                          Accept Supervision
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ─── PROPOSAL CONTENT ─── */}
+                  <div className="relative">
+                    {/* Subtle decorative element to connect action bar to content */}
+                    {selectedProposal?.status === "PendingSupervisorApproval" && (
+                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-px h-8 bg-gradient-to-b from-slate-200 to-transparent hidden md:block" />
+                    )}
+                    <ProposalDetail data={selectedProposal} />
+                  </div>
+                </>
               )}
-            </div>
+          </div>
+        ) : (
+          /* ─── LIST VIEW ─── */
+          <div className="animate-in fade-in duration-500">
+            {proposals.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {proposals.map((item) => (
+                  <ProposalCard 
+                    key={item._id} 
+                    proposal={item} 
+                    onViewDetails={() => handleViewDetails(item)} 
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
+                <div className="p-4 bg-slate-50 rounded-2xl text-slate-300 mb-4">
+                  <AlertCircle size={40} />
+                </div>
+                <h3 className="text-lg font-black text-slate-800">No Pending Requests</h3>
+                <p className="text-slate-400 font-medium">You don't have any supervision requests to review at the moment.</p>
+              </div>
+            )}
           </div>
         )}
-
-        {view === "detail" && (
-          detailLoading ? (
-            <div className="py-20 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div></div>
-          ) : (
-            <RequestDetail
-              request={selected}
-              onBack={() => setView("list")}
-              onRespond={handleRespond}
-              responding={responding}
-            />
-          )
-        )}
       </div>
+
+      {/* ─── ACTION MODAL ─── */}
+      <ConfirmModal 
+        isOpen={actionModal.isOpen}
+        onClose={() => setActionModal({ isOpen: false, type: null })}
+        onConfirm={handleRespond}
+        title={actionModal.type === "accept" ? "Accept Request?" : "Reject Request?"}
+        message={
+          actionModal.type === "accept" 
+            ? "By accepting, you agree to supervise this student's project. This will notify the student and register a project for the group."
+            : "Are you sure you want to reject this request? You may want to provide feedback in the details view first."
+        }
+        theme={actionModal.type === "accept" ? "green" : "red"}
+        loading={isSubmitting}
+      >
+        {actionModal.type === "accept" ? "Confirm Acceptance" : "Confirm Rejection"}
+      </ConfirmModal>
     </div>
   );
 };
 
-export default SupervisionRequestsPage;
+export default SupervisorRequestPage;

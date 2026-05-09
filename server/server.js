@@ -14,7 +14,9 @@ import { registerDeadlineCrons } from "./controllers/cron/deadlineController.js"
 // Routes
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+
 import facultyRoutes from "./routes/facultyRoutes.js";
+
 import studentRoutes from "./routes/studentRoutes.js";
 
 // Admin seed
@@ -109,7 +111,9 @@ connectDB().then(() => {
 /* ================= ROUTES ================= */
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+
 app.use("/api/faculty", facultyRoutes);
+
 app.use("/api/student", studentRoutes);
 
 /* ================= ERROR HANDLING ================= */

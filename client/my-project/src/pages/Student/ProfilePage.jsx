@@ -1,171 +1,296 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
+
 import profileService from "../../services/Student/profileService";
+
+import groupService from "../../services/Student/groupService";
+
 import { 
-  User, Mail, BookOpen, Hash, 
-  Calendar, GraduationCap, 
-  ShieldCheck, Copy, CheckCircle, Users
+  User, Mail, BookOpen, Calendar, GraduationCap, 
+  ShieldCheck, Copy, CheckCircle, XCircle,
+  Phone, Fingerprint, ExternalLink
 } from "lucide-react";
-import Header from "../../components/common/Header";
+
+import Header from "../../components/ui/Header";
+import Loader from "../../components/ui/Loader";
+
+import GroupDetails from "../../components/common/Group/GroupDetails";
 
 const StudentProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
+  const [group, setGroup] = useState(null);
+  const [isPGStudent, setisPGStudent] = useState(false);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchProfile();
   }, []);
 
+  const groupStatus = group?.status?.toLowerCase();
+  const hasGroup = !!profile?.groupId;
+
+  const isRegistered =
+    hasGroup &&
+    groupStatus === "active";
+
   const fetchProfile = async () => {
-    try {
-      const response = await profileService.getProfile();
-      if (response.success) {
-        setProfile(response.data);
+  try {
+    setLoading(true);
+
+    const profRes = await profileService.getProfile();
+
+    if (profRes.success) {
+      const profileData = profRes.data;
+
+      setProfile(profileData);
+
+      if (profileData?.programType === "PG") {
+        setisPGStudent(true);
       }
-    } catch (error) {
-      toast.error(error.message || "Failed to load profile.");
-    } finally {
-      setLoading(false);
+
+      // Fetch group only if groupId exists
+      if (profileData?.groupId) {
+        const groupRes = await groupService.getGroupDetails();
+
+        if (groupRes.success && groupRes.data) {
+          setGroup(groupRes.data);
+        }
+      }
     }
-  };
+  } catch (error) {
+    toast.error(error.message || "Failed to load profile.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const copyToClipboard = (text) => {
     if (!text) return;
     navigator.clipboard.writeText(text);
-    toast.success("Email copied to clipboard!");
+    toast.success("Copied to clipboard", { icon: '📋' });
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col justify-center items-center h-screen bg-slate-50 gap-4">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  const handlePgRegistration = async () => {
+      if (!profile?.name || !isPGStudent) return;
+
+      try {
+        const res = await groupService.createGroup(profile.name);
+
+        if (res.success) {
+          toast.success("Registration Successful!");
+
+          // Reload profile + group
+          fetchProfile();
+        }
+      } catch (error) {
+        toast.error(error?.message || "Registration Failed");
+      }
+  };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-20">
-      <div className="max-w-8xl mx-auto space-y-6 md:space-y-8 p-4 md:p-6">
+     <div className="min-h-screen bg-[#F8FAFC] pb-20">
+      <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-8">
         <Header 
           title="Student Profile" 
-          subtitle="Manage academic identity and security" 
+          subtitle="Manage your academic credentials and group status" 
           icon={User}
         />
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-32 bg-white">
+            <Loader fullScreen={false} />
+          </div>
+        ) : (
+          <div>
+            <div className="bg-white rounded-[3rem] border border-slate-200/60 shadow-xl shadow-slate-200/40 overflow-hidden relative transition-all hover:shadow-2xl hover:shadow-slate-200/50">
+          
+          {/* Action Button Container */}
+          <div className="absolute top-6 right-6 md:top-10 md:right-10 z-20">
 
-        {/* 1. HERO SECTION (Simplified) */}
-        <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm p-8 sm:p-12">
-          <div className="flex flex-col md:flex-row items-center gap-6 sm:gap-8">
-            {/* Avatar - Small and Simple */}
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400">
-              <User size={32} />
+            {/* ================= UG STUDENT ================= */}
+            {!isPGStudent && (
+              <>
+                {/* No group */}
+                {!hasGroup && (
+                  <button
+                    className="px-8 py-3 bg-slate-900 hover:bg-black text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all shadow-lg shadow-slate-200 flex items-center gap-2 active:scale-95"
+                    onClick={() => navigate("/student/group-formation")}
+                  >
+                    Form Group <ExternalLink size={14} />
+                  </button>
+                )}
+
+                {/* Draft group */}
+                {hasGroup && groupStatus === "draft" && (
+                  <button
+                    className="px-8 py-3 bg-slate-900 hover:bg-black text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all shadow-lg shadow-slate-200 flex items-center gap-2 active:scale-95"
+                    onClick={() => navigate("/student/group-formation")}
+                  >
+                    Form Group <ExternalLink size={14} />
+                  </button>
+                )}
+
+                {/* Formed group */}
+                {hasGroup && groupStatus === "formed" && (
+                  <button
+                    className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all shadow-lg shadow-blue-200 flex items-center gap-2 active:scale-95"
+                    onClick={() => navigate("/student/project-proposals")}
+                  >
+                    Send Proposal <ExternalLink size={14} />
+                  </button>
+                )}
+
+                {/* Active => no button */}
+              </>
+            )}
+
+            {/* ================= PG STUDENT ================= */}
+            {isPGStudent && (
+              <>
+                {/* No group */}
+                {!hasGroup && (
+                  <button
+                    className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all shadow-lg shadow-blue-200 flex items-center gap-2 active:scale-95"
+                    onClick={handlePgRegistration}
+                  >
+                    Register
+                  </button>
+                )}
+
+                {/* Draft group */}
+                {hasGroup && groupStatus === "draft" && (
+                  <button
+                    className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all shadow-lg shadow-blue-200 flex items-center gap-2 active:scale-95"
+                    onClick={() => navigate("/student/project-proposals")}
+                  >
+                    Send Proposal <ExternalLink size={14} />
+                  </button>
+                )}
+
+                {/* Active => no button */}
+              </>
+            )}
+          </div>
+
+          <div className="p-8 md:p-14">
+            {/* Identity Section */}
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-10 border-b border-slate-100 pb-12">
+              <div className="w-28 h-28 rounded-[2.5rem] bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 shadow-inner">
+                <Fingerprint size={56} strokeWidth={1.2} />
+              </div>
+
+              <div className="text-center md:text-left space-y-4">
+                <div className="flex flex-col md:flex-row items-center gap-4">
+                  <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+                    {profile?.name}
+                  </h1>
+                  <span className={`px-5 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border shadow-sm ${isRegistered ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>
+                    {isRegistered ? "Verified" : "Action Required"}
+                  </span>
+                </div>
+                
+                <div className="flex flex-wrap justify-center md:justify-start gap-6 text-slate-500">
+                  <div 
+                    onClick={() => copyToClipboard(profile?.email)}
+                    className="flex items-center gap-2 font-bold text-xs cursor-pointer hover:text-blue-600 transition-colors group"
+                  >
+                    <Mail size={16} className="text-blue-400 group-hover:scale-110 transition-transform"/> 
+                    {profile?.email} 
+                    <Copy size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                  <div className="flex items-center gap-2 font-bold text-xs">
+                    <Phone size={16} className="text-blue-400"/> {profile?.phoneNumber}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="text-center md:text-left">
-              <div className="flex flex-col md:flex-row items-center gap-3">
-                <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight uppercase">
-                  {profile?.name}
-                </h1>
-                <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-blue-100">
-                  STUDENT
-                </span>
+            {/* Content Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-12 pt-12">
+              <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-10">
+                
+                <div className="space-y-8">
+                  <SectionTitle icon={BookOpen} title="Academic Portfolio" />
+                  <div className="space-y-6">
+                    <InfoItem label="Unique ID / Roll" value={profile?.rollNumber} />
+                    <InfoItem label="Primary Faculty" value={profile?.department} />
+                    <InfoItem label="Core Specialization" value={profile?.specialization} />
+                  </div>
+                </div>
+
+                <div className="space-y-8">
+                  <SectionTitle icon={GraduationCap} title="Program Timeline" />
+                  <div className="space-y-6">
+                    <InfoItem label="Active Semester" value={`Semester ${profile?.semester}`} />
+                    <InfoItem label="Calendar Session" value={profile?.session} />
+                    <InfoItem label="Degree Level" value={profile?.programType === "UG" ? "Undergraduate" : "Postgraduate"} />
+                  </div>
+                </div>
+
               </div>
-              <div 
-                onClick={() => copyToClipboard(profile?.email)}
-                className="flex items-center justify-center md:justify-start gap-2 mt-2 text-slate-500 font-bold text-sm cursor-pointer hover:text-blue-600 transition-colors"
-              >
-                <Mail size={14} className="text-blue-500"/> {profile?.email} <Copy size={12} />
+
+              {/* Status Sidebar */}
+              <div className="md:col-span-4 bg-slate-50/80 p-8 rounded-[2rem] border border-slate-200/50 backdrop-blur-sm self-start">
+                <SectionTitle icon={ShieldCheck} title="Compliance" />
+                <ul className="space-y-5 mt-6">
+                  <CheckItem label="Institutional Email" checked={true} />
+                  <CheckItem label="Academic Standing" checked={true} />
+                  <CheckItem label="Project Registration" checked={isRegistered} />
+                </ul>
+                <div className="pt-8 mt-8 border-t border-slate-200">
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-relaxed">
+                    Last Cloud Sync<br/>
+                    <span className="text-slate-600">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                   </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-
-        {/* 2. ACADEMIC QUICK STATS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          <QuickStat label="Roll Number" value={profile?.rollNumber} icon={Hash} color="blue" />
-          <QuickStat label="Current Semester" value={`${profile?.semester}th Sem`} icon={GraduationCap} color="purple" />
-          <QuickStat label="Batch / Session" value={profile?.session} icon={Calendar} color="amber" />
-          <QuickStat label="BTP Group" value={profile?.group || "Not Assigned"} icon={Users} color={profile?.group ? "emerald" : "slate"} />
-        </div>
-
-        {/* 3. INFORMATION GRID */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm p-8 sm:p-12">
-            <div className="flex items-center gap-4 mb-10">
-              <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
-                <BookOpen size={20} />
-              </div>
-              <div>
-                <h3 className="text-xl font-black text-slate-900 tracking-tight">Academic Profile</h3>
-                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Enrolled Course Details</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
-              <InfoBlock label="Department" value={profile?.department} />
-              <InfoBlock label="Specialization" value={profile?.specialization} />
-              <InfoBlock label="Admission Year" value={profile?.admissionYear} />
-              <InfoBlock label="Phone Number" value={profile?.phoneNumber} />
-              <InfoBlock label="Current Session" value={profile?.session} />
-              <InfoBlock label="Institutional Email" value={profile?.email} />
-            </div>
+            
+        {group && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <GroupDetails group={group}/>
           </div>
-
-          <div className="bg-white rounded-[2rem] sm:rounded-[3rem] border border-slate-100 shadow-sm p-8 sm:p-10 flex flex-col">
-             <div className="flex items-center gap-3 mb-8">
-               <ShieldCheck className="text-blue-600" size={24} />
-               <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight">Status Check</h4>
-             </div>
-             
-             <ul className="space-y-6 flex-1">
-               <CheckItem label="Institutional Email Verified" checked={true} />
-               <CheckItem label="Academic Records Synced" checked={true} />
-               <CheckItem label="BTP Module Access" checked={!!profile?.group} />
-             </ul>
-
-             <div className="mt-10 p-6 bg-slate-50 rounded-[1.5rem] border border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Privacy Note</p>
-                <p className="text-xs text-slate-500 leading-relaxed font-bold">Your academic data is managed by the department coordinator. Contact them for record corrections.</p>
-             </div>
+        )}
           </div>
-        </div>
+        )}
+        
       </div>
     </div>
   );
 };
 
-const QuickStat = ({ label, value, icon: Icon, color }) => {
-  const colors = {
-    blue: "text-blue-600 bg-blue-50",
-    purple: "text-purple-600 bg-purple-50",
-    amber: "text-amber-600 bg-amber-50",
-    emerald: "text-emerald-600 bg-emerald-50",
-    slate: "text-slate-400 bg-slate-50"
-  };
-
-  return (
-    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:border-blue-200 transition-all group">
-      <div className={`w-10 h-10 ${colors[color]} rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-        <Icon size={20} />
-      </div>
-      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-      <p className="text-lg font-black text-slate-800 truncate">{value || "N/A"}</p>
+const SectionTitle = ({ icon: Icon, title }) => (
+  <div className="flex items-center gap-3">
+    <div className="w-9 h-9 bg-white shadow-sm border border-slate-100 rounded-xl flex items-center justify-center text-blue-600">
+      <Icon size={18} strokeWidth={2.5} />
     </div>
-  );
-};
+    <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.15em]">{title}</h3>
+  </div>
+);
 
-const InfoBlock = ({ label, value }) => (
-  <div className="space-y-1.5">
-    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{label}</p>
-    <p className="text-base font-bold text-slate-700 leading-tight break-words">{value || "—"}</p>
+const InfoItem = ({ label, value }) => (
+  <div className="group min-h-[45px]">
+    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 group-hover:text-blue-500 transition-colors">
+      {label}
+    </p>
+    <p className="text-[13px] font-bold text-slate-800">{value || "Not Specified"}</p>
   </div>
 );
 
 const CheckItem = ({ label, checked }) => (
-  <li className="flex items-center gap-3">
-    <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${checked ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-300'}`}>
-      <CheckCircle size={14} />
-    </div>
-    <span className={`text-[11px] font-black uppercase tracking-wider ${checked ? 'text-slate-600' : 'text-slate-400'}`}>{label}</span>
+  <li className="flex items-center gap-4">
+    {checked ? (
+      <div className="bg-emerald-500 rounded-full p-0.5"><CheckCircle size={14} className="text-white" /></div>
+    ) : (
+      <div className="bg-slate-200 rounded-full p-0.5"><XCircle size={14} className="text-white" /></div>
+    )}
+    <span className={`text-[10px] font-black uppercase tracking-widest ${checked ? 'text-slate-700' : 'text-slate-400'}`}>
+      {label}
+    </span>
   </li>
 );
 

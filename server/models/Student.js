@@ -30,16 +30,9 @@ const studentSchema = new mongoose.Schema(
       },
     },
 
-    admissionYear: {
-      type: Number,
-      required: true,
-      min: 2000,
-      max: new Date().getFullYear(),
-    },
-
-    departmentConfig: {
+    department: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "DepartmentConfig",
+      ref: "Department",
       required: true,
     },
 
@@ -49,11 +42,26 @@ const studentSchema = new mongoose.Schema(
       trim: true,
     },
 
+    programType: {
+      type: String,
+      enum: ["UG", "PG"],
+      required: true,
+      default: "UG",
+    },
+    
     semester: {
       type: Number,
       required: true,
-      enum: [7, 8],
-      default: 7,
+      // BTech uses 7|8. MTech semesters 1-4.
+      // Remove the enum constraint, add a validator instead:
+      validate: {
+        validator: function(v) {
+          if (this.programType === "UG") return [7, 8].includes(v);
+          if (this.programType === "PG") return v >= 1 && v <= 4;
+          return false;
+        },
+        message: "Invalid semester for this program type."
+      }
     },
 
     session: {
@@ -69,12 +77,6 @@ const studentSchema = new mongoose.Schema(
       default: null,
     },
 
-    isAvailableForInvite: {
-      type: Boolean,
-      required: true,
-      default: true,
-      index: true,
-    },
   },
   { timestamps: true }
 );
@@ -83,8 +85,9 @@ const studentSchema = new mongoose.Schema(
    Indexing
 ===================== */
 
-studentSchema.index({ departmentConfig: 1, semester: 1 });
-studentSchema.index({ departmentConfig: 1, specialization: 1 });
+
+studentSchema.index({ department: 1, semester: 1 });
+studentSchema.index({ department: 1, specialization: 1 });
 studentSchema.index({ groupId: 1 });
 studentSchema.index({ createdAt: -1 });
 

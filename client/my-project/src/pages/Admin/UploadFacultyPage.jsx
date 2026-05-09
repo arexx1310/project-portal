@@ -18,7 +18,7 @@ import { toast } from "react-hot-toast";
 
 import uploadService from "../../services/Admin/uploadService";
 import departmentService from "../../services/Admin/departmentServices";
-import Header from "../../components/common/Header";
+import Header from "../../components/ui/Header";
 import excelFormat from "../../assets/facultyexcelformat.png";
 
 const UploadFacultyPage = () => {

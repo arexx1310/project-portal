@@ -29,12 +29,7 @@ const sessionService = {
     const res = await axiosInstance.patch(API_PATHS.ADMIN.ACTIVATE_SESSION(id));
     return res.data;
   },
-
-  deactivateSession: async (id) => {
-    const res = await axiosInstance.patch(API_PATHS.ADMIN.DEACTIVATE_SESSION(id));
-    return res.data;
-  },
-
+  
   deleteSession: async (id) => {
     const res = await axiosInstance.delete(API_PATHS.ADMIN.DELETE_SESSION(id));
     return res.data;

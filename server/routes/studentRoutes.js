@@ -1,28 +1,56 @@
 import express from "express";
 import protect from "../middleware/protect.js";
 import authorize from "../middleware/authorize.js";
+import { attachStudentProfile ,requireProgram } from "../middleware/studentAccess.js";
+import { getNotifications } from "../controllers/notificationController.js";
+
 import {
   getProfile
 } from "../controllers/student/profileController.js";
 import {
   updatePassword
 } from "../controllers/authController.js";
+
 import {
-  createGroupInvite,
-  listMyInvites,
-  getGroupInvite,
-  memberRespond,
-  cancelGroupInvite,
-  addMember,
   getBTPConfig,
-} from "../controllers/student/groupInvitesController.js";
+  createGroup,
+  sendInvite,
+  respondInvite,
+  getGroupsInvite,
+  getMyInvites,
+  withDrawInvite,
+  registerGroup
+} from "../controllers/student/groupController.js";
 
-import { getNotifications } from "../controllers/notificationController.js";
+import { 
+  getDepartments,
+  getAvailableSupervisors,
+  createProjectRequest,
+  cancelProjectRequest,
+  getMyProjects,
+} from "../controllers/student/projectController1.js";
 
-import { attachStudentProfile } from "../middleware/studentAccess.js";
-import { getMyBTPGroup } from "../controllers/student/btpInfoController.js";
+import { getGroupDetails} from "../controllers/common/groupControllers.js";
+import { getProjectById } from "../controllers/common/projectController.js";
 
-import {getAvailableProfessors,cancelProjectApprovalRequest, createProjectApprovalRequest, getProjectApprovalRequest, listMyProjectApprovalRequests } from "../controllers/student/projectProposalController.js";
+import {
+  getProjectRequestDetails,
+  listProjectRequests
+} from "../controllers/common/proposalsController.js";
+
+
+import { editTaskSubmission, editWeeklyUpdate, getProjectTasks, getWeeklyUpdates, submitTask, submitWeeklyUpdate } from "../controllers/student/weeklyWorkController.js";
+
+import {
+  listPublications,
+  getPublication,
+  createPublication,
+  updatePublication,
+  deletePublication,
+  addRemark,
+} from "../controllers/common/publicationController.js";
+
+import { createMtpProjectRequest } from "../controllers/student/mtechControllers.js";
 
 const router = express.Router();
 
@@ -39,23 +67,48 @@ router.get("/notifications", getNotifications);
 
 /* ============== GROUP FORMATION AND RESPONSE ============ */
 router.get("/btpconfig",getBTPConfig);
-router.get("/group-invites/addmember/:rollNumber",addMember);
-router.post("/group-invites/", createGroupInvite);
-router.get("/group-invites/mine", listMyInvites);
-router.get("/group-invites/:inviteId", getGroupInvite);
-router.delete("/group-invites/:inviteId", cancelGroupInvite);
-router.patch("/group-invites/:inviteId/member-response", memberRespond);
+router.post("/create-group",createGroup);
+router.get("/group",getGroupDetails);
+router.get("/group/invites",getGroupsInvite);
+router.get("/group/my-invites",getMyInvites);
+router.post("/group/send-invite",sendInvite);
+router.patch("/group/respond-invite/:inviteId",respondInvite);
+router.delete("/group/withdraw-invite/:inviteId",withDrawInvite);
 
-/* ============== SUPERVISOR SELECTION AND PROJECT PROPOSAL ============ */
-router.get("/available-professors",getAvailableProfessors);
-router.post("/project-approval/", createProjectApprovalRequest);
-router.get("/project-approval/mine",listMyProjectApprovalRequests);
-router.get("/project-approval/:requestId",getProjectApprovalRequest);
-router.delete("/project-approval/:requestId",cancelProjectApprovalRequest);
+router.patch("/group/register",registerGroup);
 
+/* ============== PROJECT PROPOSALS ============ */
+router.get("/project-proposal/departments",getDepartments);
+router.get("/project-proposal/available-professors/:departmentId",getAvailableSupervisors);
+router.post("/project-proposal/create-request",createProjectRequest);
+router.get("/project-proposal/my-requests",listProjectRequests);
+router.get("/project-proposal/my-requests/:inviteId",getProjectRequestDetails);
+router.delete("/project-proposal/:inviteId",cancelProjectRequest);
 
-/* ============== GROUP AND PROJECT INFORMATION============ */
-router.get("/group",getMyBTPGroup);
+/* ============== ALL PROJECT DETAILS AND UPDATES ============ */
+router.get("/projects/my-projects",getMyProjects);
+router.get("/projects/:projectId",getProjectById);
+router.post("/projects/:projectId/weekly-updates",submitWeeklyUpdate);
+router.put("/projects/:projectId/weekly-updates/:itemId",editWeeklyUpdate);
+router.get("/projects/:projectId/weekly-updates",getWeeklyUpdates);
+router.get("/projects/:projectId/tasks",getProjectTasks);
+router.post("/projects/:projectId/tasks/:itemId/submit",submitTask);
+router.put("/projects/:projectId/tasks/:itemId/submission",editTaskSubmission);
+
+/* ============== ALL PUBLICATIONS DETAILS AND UPDATES ============ */
+router.get("/projects/:projectId/publications",                         listPublications);
+router.get("/projects/:projectId/publications/:publicationId",          getPublication);
+router.post("/projects/:projectId/publications",                         createPublication);
+router.patch("/projects/:projectId/publications/:publicationId",         updatePublication);
+router.delete("/projects/:projectId/publications/:publicationId",        deletePublication);
+router.post("/projects/:projectId/publications/:publicationId/remarks",  addRemark);
+ 
+
+/* ============== ONLY FOR PG STUDENTS ============ */
+router.use(requireProgram("PG"));
+
+router.post("/mtp/supervisor-request",createMtpProjectRequest);
+
 
 
 export default router;

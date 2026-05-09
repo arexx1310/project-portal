@@ -57,7 +57,7 @@ const notificationEventSchema = new mongoose.Schema(
       enum: [
         "Faculty",
         "Session",
-        "DepartmentConfig",
+        "Department",
         "GroupFormation",
         "Group",
         "ProjectApprovalRequest",

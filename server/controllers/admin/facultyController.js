@@ -27,7 +27,7 @@ export const getFaculty = async (req, res, next) => {
           message: "Invalid departmentId",
         });
       }
-      query.departmentConfig = departmentId;
+      query.department = departmentId;
     }
 
     if (search) {
@@ -51,8 +51,8 @@ export const getFaculty = async (req, res, next) => {
               }
             : undefined,
         })
-        .populate("departmentConfig", "department")
-        .select("staffId roles user departmentConfig")
+        .select("staffId roles user department")
+        .populate("department", "department")
         .sort({ staffId: 1 })
         .skip(skip)
         .limit(limit)
@@ -67,6 +67,65 @@ export const getFaculty = async (req, res, next) => {
       total,
       count: faculty.length,
       data: faculty,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc Get faculty statistics
+ * @route GET /api/admin/faculty/stats
+ * @access Admin
+ */
+export const getFacultyStats = async (req, res, next) => {
+  try {
+    const totalFaculty = await Faculty.countDocuments();
+
+    const byDepartment = await Faculty.aggregate([
+      {
+        $lookup: {
+          from: "departments", // ← was "department"
+          localField: "department",
+          foreignField: "_id",
+          as: "dept",
+        },
+      },
+      { $unwind: "$dept" },
+      {
+        $group: {
+          _id: "$dept.department",
+          count: { $sum: 1 },
+        },
+      },
+      { $project: { _id: 0, department: "$_id", count: 1 } },
+      { $sort: { department: 1 } },
+    ]);
+
+    const byRole = await Faculty.aggregate([
+      { $unwind: "$roles" },
+      {
+        $group: {
+          _id: "$roles",
+          count: { $sum: 1 },
+        },
+      },
+      { $project: { _id: 0, role: "$_id", count: 1 } },
+      { $sort: { count: -1 } },
+    ]);
+
+    const withSpecialRoles = await Faculty.countDocuments({
+      roles: { $exists: true, $ne: [] },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalFaculty,
+        byDepartment,
+        byRole,
+        withSpecialRoles,
+      },
     });
   } catch (error) {
     next(error);
@@ -116,7 +175,7 @@ export const updateFaculty = async (req, res, next) => {
       session 
     })
       .populate("user", "name email isActive role")
-      .populate("departmentConfig", "department")
+      .populate("department", "department")
       .lean();
 
     if (!faculty) {
@@ -130,8 +189,8 @@ export const updateFaculty = async (req, res, next) => {
       const assignedRoles = updateData.roles || [];
       const message =
         assignedRoles.length === 0
-          ? `Your special roles have been removed in the ${faculty.departmentConfig.department} department.`
-          : `You have been assigned the following role(s) in ${faculty.departmentConfig.department}: ${assignedRoles.map(r => roleLabels[r]).join(", ")}.`;
+          ? `Your special roles have been removed in the ${faculty.department.department} department.`
+          : `You have been assigned the following role(s) in ${faculty.department.department}: ${assignedRoles.map(r => roleLabels[r]).join(", ")}.`;
 
       // Create recipients array properly
       const recipients = [{
@@ -238,7 +297,7 @@ export const bulkDeleteFacultyByDepartment = async (req, res, next) => {
     session.startTransaction();
 
     const facultyList = await Faculty.find({
-      departmentConfig: departmentId,
+      department: departmentId,
     })
       .select("_id user")
       .session(session);
@@ -272,63 +331,6 @@ export const bulkDeleteFacultyByDepartment = async (req, res, next) => {
   }
 };
 
-/**
- * @desc Get faculty statistics
- * @route GET /api/admin/faculty/stats
- * @access Admin
- */
-export const getFacultyStats = async (req, res, next) => {
-  try {
-    const totalFaculty = await Faculty.countDocuments();
 
-    const byDepartment = await Faculty.aggregate([
-      {
-        $lookup: {
-          from: "departmentconfigs",
-          localField: "departmentConfig",
-          foreignField: "_id",
-          as: "dept",
-        },
-      },
-      { $unwind: "$dept" },
-      {
-        $group: {
-          _id: "$dept.department",
-          count: { $sum: 1 },
-        },
-      },
-      { $project: { _id: 0, department: "$_id", count: 1 } },
-      { $sort: { department: 1 } },
-    ]);
-
-    const byRole = await Faculty.aggregate([
-      { $unwind: "$roles" },
-      {
-        $group: {
-          _id: "$roles",
-          count: { $sum: 1 },
-        },
-      },
-      { $project: { _id: 0, role: "$_id", count: 1 } },
-      { $sort: { count: -1 } },
-    ]);
-
-    const withSpecialRoles = await Faculty.countDocuments({
-      roles: { $exists: true, $ne: [] },
-    });
-
-    res.status(200).json({
-      success: true,
-      data: {
-        totalFaculty,
-        byDepartment,
-        byRole,
-        withSpecialRoles,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
 
