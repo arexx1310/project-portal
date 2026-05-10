@@ -101,15 +101,18 @@ export const getMyGroups = async (req, res, next) => {
 
     
     // ── 4. Shape response ─────────────────────────────────────────────────────
-    const data = groups.map((g) => ({
-      _id:    g._id,
-      name:   g.name,
-      status: g.status,
-      supervisors: g.supervisors.map((s) => ({
-        name:  s.user?.name  ?? null,
-        email: s.user?.email ?? null,
+   const data = (groups || []).map((g) => ({
+      _id: g?._id,
+
+      name: g?.name || "",
+      status: g?.status || "",
+
+      supervisors: (g?.supervisors || []).map((s) => ({
+        name: s?.user?.name ?? null,
+        email: s?.user?.email ?? null,
       })),
-      students: studentsByGroup[g._id.toString()] ?? [],
+
+      students: studentsByGroup?.[g?._id?.toString()] ?? [],
     }));
 
     return res.status(200).json({
@@ -181,16 +184,18 @@ export const getMTechStudents = async (req, res, next) => {
     }
 
     // ── 4. Shape response ─────────────────────────────────────────────────────
-    const data = groups.map((g) => ({
-      _id:    g._id,
-      name: g.name,
-      status: g.status,
-      isPG: g.programType === "PG",
-      supervisors: g.supervisors.map((s) => ({
-        name:  s.user?.name  ?? null,
-        email: s.user?.email ?? null,
+    const data = (groups || []).map((g) => ({
+      _id: g?._id,
+
+      name: g?.name || "",
+      status: g?.status || "",
+
+      isPG: g?.programType === "PG",
+
+      supervisors: (g?.supervisors || []).map((s) => ({
+        name: s?.user?.name ?? null,
+        email: s?.user?.email ?? null,
       })),
-    
     }));
 
     return res.status(200).json({

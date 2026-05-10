@@ -8,15 +8,6 @@ import Session from "../../models/Session.js";
 import Department from "../../models/DepartmentConfig.js";
 import { notifyGroup, sendNotification } from "../notificationController.js";
 
-// ── helper to avoid crashing after commit ────────────────────────────────
-const safeNotify = async (payload, recipients) => {
-  try {
-    await sendNotification(payload, recipients);
-  } catch (notifyErr) {
-    console.error("sendNotification failed (non-fatal):", notifyErr);
-  }
-};
-
 
 // THIS RESPONSE IS FOR UG (BTECH) STUDENTS ONLY
 /**

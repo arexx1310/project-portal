@@ -119,7 +119,7 @@ export const editWeeklyUpdate = async (req, res, next) => {
 
     await workItem.save();
 
-    return res.json({ success: true, message: "Weekly update edited.", data: {
+    return res.status(201).json({ success: true, message: "Weekly update edited.", data: {
         updateText: workItem.updateText,
         links: workItem.links
       } 
@@ -184,7 +184,7 @@ export const getWeeklyUpdates = async (req, res, next) => {
       updatedAt: u.updatedAt,
     }));
  
-    return res.json({
+    return res.status(200).json({
       success: true,
       data,
       pagination: {
@@ -245,25 +245,29 @@ export const getProjectTasks = async (req, res, next) => {
         .lean(),
     ]);
  
-    const data = tasks.map((t) => ({
-      _id:         t._id,
-      type:        t.type,
-      title:       t.title,
-      description: t.description,
-      assignedBy:  t.assignedBy?.user?.name || "",
-      submission:  t.submission,
-      feedbacks:   t.feedbacks.map((f) => ({
-        name:    f.faculty?.user?.name || "",
-        comment: f.comment,
-        givenAt: f.givenAt,
+    const data = (tasks || []).map((t) => ({
+      _id: t?._id,
+      type: t?.type || "",
+      title: t?.title || "",
+      description: t?.description || "",
+
+      assignedBy: t?.assignedBy?.user?.name || "",
+
+      submission: t?.submission || null,
+
+      feedbacks: (t?.feedbacks || []).map((f) => ({
+        name: f?.faculty?.user?.name || "",
+        comment: f?.comment || "",
+        givenAt: f?.givenAt || null,
       })),
-      dueDate:   t.dueDate,
-      status:    t.status,
-      createdAt: t.createdAt,
-      updatedAt: t.updatedAt,
+
+      dueDate: t?.dueDate || null,
+      status: t?.status || "",
+      createdAt: t?.createdAt || null,
+      updatedAt: t?.updatedAt || null,
     }));
  
-    return res.json({
+    return res.status(200).json({
       success: true,
       data,
       pagination: {
@@ -309,7 +313,7 @@ export const submitTask = async (req, res, next) => {
     task.status     = "Submitted";
     await task.save();
 
-    return res.json({ 
+    return res.status(201).json({ 
       success: true, 
       message: "Task submitted successfully.", 
       data: {
@@ -350,7 +354,7 @@ export const editTaskSubmission = async (req, res, next) => {
     task.submission.submittedAt = new Date();
 
     await task.save();
-    return res.json({ success: true, message: "Submission updated.", data:{
+    return res.status(201).json({ success: true, message: "Submission updated.", data:{
         submission: task.submission,
         status: task.status
     }});

@@ -19,7 +19,6 @@ const groupSchema = new mongoose.Schema(
       type: String,
       enum: ["UG", "PG"],
       required: true,
-      default: "UG",
     },
 
     session: {
@@ -45,6 +44,6 @@ const groupSchema = new mongoose.Schema(
 );
 
 groupSchema.index({ name: 1, session: 1 }, { unique: true });
-groupSchema.index({ department: 1, session: 1 });
+groupSchema.index({ departments: 1, session: 1 });
 
 export default mongoose.model('Group', groupSchema);

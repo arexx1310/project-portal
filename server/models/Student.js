@@ -39,7 +39,6 @@ const studentSchema = new mongoose.Schema(
     specialization: {
       type: String,
       default: null,
-      trim: true,
     },
 
     programType: {
@@ -87,7 +86,7 @@ const studentSchema = new mongoose.Schema(
 
 
 studentSchema.index({ department: 1, semester: 1 });
-studentSchema.index({ department: 1, specialization: 1 });
+studentSchema.index({ department: 1 });
 studentSchema.index({ groupId: 1 });
 studentSchema.index({ createdAt: -1 });
 

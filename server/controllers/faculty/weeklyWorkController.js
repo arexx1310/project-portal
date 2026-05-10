@@ -110,7 +110,7 @@ export const editTask = async (req, res, next) => {
     if (dueDate !== undefined)     task.dueDate     = new Date(dueDate);
 
     await task.save();
-    return res.json({ 
+    return res.status(201).json({ 
       success: true, 
       message: "Task updated.", 
       data: {
@@ -207,7 +207,7 @@ export const getProjectWorkItems = async (req, res, next) => {
  
     const itemData = items.map((i) => ({
       _id:         i._id,
-      type:        i.type,
+      type:        i.type || "",
       weekNumber:  i.weekNumber  || "",
       updateText:  i.updateText  || "",
       title:       i.title       || "",
@@ -227,7 +227,7 @@ export const getProjectWorkItems = async (req, res, next) => {
       updatedAt:  i.updatedAt,
     }));
  
-    return res.json({
+    return res.status(200).json({
       success: true,
       data:    itemData,
       pagination: {
@@ -300,7 +300,7 @@ export const addFeedback = async (req, res, next) => {
         givenAt: latestFeedback.givenAt
     };
 
-    return res.json({
+    return res.status(201).json({
           success: true,
           message: "Feedback added.",
           data: newFeedback
@@ -355,7 +355,7 @@ export const updateWorkItemStatus = async (req, res, next) => {
     workItem.status = status;
     await workItem.save();
 
-    return res.json({ success: true, message: `Status updated to "${status}".`, data: workItem.status });
+    return res.status(201).json({ success: true, message: `Status updated to "${status}".`, data: workItem.status });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ success: false, message: err.message });
     next(err);

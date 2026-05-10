@@ -11,10 +11,6 @@ const sessionSchema = new mongoose.Schema({
     required: true 
   },
   oddSemester: {
-    semester: { 
-      type: Number, 
-      default: 7 
-    },
     startDate: { 
       type: Date, 
       required: true 
@@ -25,10 +21,6 @@ const sessionSchema = new mongoose.Schema({
     }
   },
   evenSemester: {
-    semester: { 
-      type: Number, 
-      default: 8 
-    },
     startDate: { 
       type: Date, 
       required: true 

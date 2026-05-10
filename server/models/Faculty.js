@@ -12,11 +12,19 @@ const facultySchema = new mongoose.Schema({
     type: String, 
     required: true, 
     unique: true, 
-    uppercase: true 
+    uppercase: true ,
+    trim: true,
   },
   phoneNumber: { 
-    type: String, 
-    required: true 
+    type: String,
+    required: true,
+    unique: true,
+    validate: {
+      validator: function (v) {
+          return /^[6-9]\d{9}$/.test(v);
+        },
+        message: (props) => `${props.value} is not a valid phone number!`,
+      },
   },
   
   department: {
