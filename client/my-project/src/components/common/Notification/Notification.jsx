@@ -5,7 +5,7 @@ import Loader from "../../ui/Loader";
 
 const getMessageStyles = (message = "") => {
   const msg = message.toLowerCase();
-  if (msg.includes("rejected") || msg.includes("failed") || msg.includes("deadline")) {
+  if (msg.includes("rejected") || msg.includes("failed") || msg.includes("deadline") || msg.includes("dissolved")) {
     return { bg: "bg-rose-50", text: "text-rose-600", icon: <AlertCircle size={18} /> };
   }
   if (msg.includes("accepted") || msg.includes("published") || msg.includes("reviewed") || msg.includes("finalized")) {

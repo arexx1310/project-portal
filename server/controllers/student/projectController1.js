@@ -398,20 +398,13 @@ export const createProjectRequest = async (req, res, next) => {
     await dbSession.commitTransaction();
     
     if (semester === 7) {
-      // Notify each supervisor individually
-      const supervisorUserIds = facultyRecords.map((f) => f.user._id);
-      await supervisorUserIds.map((userId) =>
-          notifyUser(userId, "faculty", req.user.id, `You have received a project proposal from group "${group.name}".`)
-        );
-        
       // Notify the group students
       await notifyGroup(group._id, req.user.id, `Your group "${group.name}" has sent a project proposal to supervisor(s). Check details in Project Proposals tab.`);
 
     } else if (semester === 8) {
       await notifyGroup(group._id, req.user.id, `A project proposal has been created for Semester 8 by your group: "${group.name}".`);
     }
-   
-
+  
     return res.status(201).json({
       success: true,
       message:

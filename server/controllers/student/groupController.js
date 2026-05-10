@@ -520,14 +520,14 @@ export const respondInvite = async (req, res, next) => {
     /* ── 8. Slot check (shared by both dept paths) ────────────────────────── */
     const { actualSlots, memberCount, pendingCount } = await getActualSlots(
       group._id,
-      responderBtpConfig.maxStudentsPerGroup,
+      responderBtpConfig.maxStudentsPerGroup + 1,  //+1 to exclude the responder itself from pending invites
       dbSession
     );
 
     /* ── 9. Same department ───────────────────────────────────────────────── */
     if (isInGroupDepts) {
-      // +1 because this invite itself is counted in pendingCount
-      if (actualSlots + 1 <= 0) {
+    
+      if (actualSlots <= 0) {
         await rejectInvite(
           invite,
           `Group is full. Members: ${memberCount}, pending: ${pendingCount}, max: ${responderBtpConfig.maxStudentsPerGroup}.`,
@@ -615,17 +615,29 @@ export const withDrawInvite = async (req, res, next) => {
       return res.status(403).json({ success: false, message: "You are not part of any group." });
     }
 
-    const invite = await GroupInvite.findOneAndDelete({
-      _id:     inviteId,
-      groupId: groupId,
-      status:  "pending",
+    const invite = await GroupInvite.findOne({
+      _id: inviteId,
+      groupId,
+      status: "pending",
     });
 
-    if (!invite) {
-      return res.status(404).json({ success: false, message: "Invite not found or can no longer be withdrawn." });
-    }
+  if (!invite) {
+    return res.status(404).json({
+      success: false,
+      message: "Invite not found or can no longer be withdrawn.",
+    });
+  }
 
-    return res.status(200).json({ success: true, message: "Invite withdrawn successfully." });
+  if (invite.initiator.toString() !== req.student.id.toString()) {
+    return res.status(403).json({
+      success: false,
+      message: "Only initiator of the invite can withdraw it.",
+    });
+  }
+
+  await invite.deleteOne();
+  
+  return res.status(200).json({ success: true, message: "Invite withdrawn successfully." });
 
   } catch (error) {
     next(error);
@@ -640,6 +652,7 @@ const dissolveGroup = async (groupId, memberIds, dbSession) => {
     await Student.updateMany({ _id: { $in: memberIds } }, { $set: { groupId: null } }, { session: dbSession });
     await GroupInvite.deleteMany({ groupId }, { session: dbSession });
     await Group.findByIdAndDelete(groupId, { session: dbSession });
+
 };
 
 
@@ -668,7 +681,7 @@ export const registerGroup = async (req, res, next) => {
     /* ── 2. Parallel fetch: group + members + dept configs ───────────────── */
     // Group must come first so we know which depts to fetch.
     const group = await Group.findById(groupId)
-      .select("departments status")
+      .select("name departments status")
       .lean()
       .session(dbSession);
 
@@ -700,8 +713,9 @@ export const registerGroup = async (req, res, next) => {
     // memberIds is fully resolved here — no reference-before-assignment risk
     const dissolveAndRespond = async (message) => {
       await dissolveGroup(group._id, memberIds, dbSession);
+      await notifyGroup(group._id,req.user.id,`Your group: ${group.name} was dissolved for failing to comply department policies of all members.${message}`);
       await dbSession.commitTransaction();
-      
+      await refreshAuthCookie(res, req);
       return res.status(400).json({
         success: false,
         dissolved: true,
@@ -782,6 +796,7 @@ export const registerGroup = async (req, res, next) => {
     await dbSession.commitTransaction();
     
     await notifyGroup(group._id,req.user.id,"Your group has been finalized for the BTP process.");
+    
     return res.status(200).json({ success: true, message: "Group registered successfully." });
 
   } catch (error) {

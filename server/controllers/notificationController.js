@@ -2,6 +2,7 @@ import Notification from "../models/Notifications.js";
 import Student from "../models/Student.js";
 import Faculty from "../models/Faculty.js";
 import Group from "../models/Group.js";
+import User from "../models/User.js";
 
 
 /* ══════════════════════════════════════════════════════

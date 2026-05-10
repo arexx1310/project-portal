@@ -146,11 +146,6 @@ const GroupFormationPage = () => {
       return;
     }
 
-    if (invites.length === 0) {
-        toast.error("You cannot register a group alone. Please invite members.");
-        return;
-    }
-
     setIsRegisterModalOpen(true);
   };
 
@@ -162,8 +157,11 @@ const GroupFormationPage = () => {
       setIsRegisterModalOpen(false);
       navigate("/student/profile"); 
     } catch (error) {
+
       toast.error(error?.message || "Registration Failed");
     } finally {
+      const { data: refreshData } = await axiosInstance.get(API_PATHS.AUTH.ME);
+      setUser(refreshData.user);
       setActionLoading(false);
     }
   };

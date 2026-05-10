@@ -271,20 +271,15 @@ export const createMtpProjectRequest = async (req, res, next) => {
 
     const isOddSemester = semester === 1 || semester === 3;
 
-    if (semester === 1 || semester === 3) {
-      const supervisorUserIds = facultyRecords.map((f) => f.user._id);
-      await supervisorUserIds.map((userId) =>
-          notifyUser(userId, "faculty", req.user.id, `Supervision request received from "${group.name}" for M.Tech Thesis Project.`)
-        );
-    } else {
-      await notifyGroup(group._id, req.user.id, `Project proposal added for Phase 2 of M.Tech Thesis Project.`);
+    if (semester === 2 || semester === 4) {
+      await notifyGroup(group._id, req.user.id, `Project proposal added for Phase 2 of M.Tech Thesis Project by student ${group.name}.`);
     }
 
     return res.status(201).json({
       success: true,
       message: isOddSemester
         ? "MTP project approval request submitted. Awaiting supervisor responses."
-        : `Semester ${semester} MTP project submitted. Your existing supervisors have been notified.`,
+        : `Semester ${semester} M.Tech project proposal submitted. Your existing supervisors have been notified.`,
     });
 
   } catch (error) {

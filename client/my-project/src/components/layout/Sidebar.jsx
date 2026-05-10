@@ -144,6 +144,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
         icon: FileText,
         isDropdown: true,
         subLinks: [
+          { to: "/student/group-formation", icon: Users, text: "Group Invites"},
           { to: "/student/project-proposals", icon: ListChecks, text: "Project Proposal" },
           { to: "/student/btp/projects", icon: GraduationCap, text: "My Projects" }
         ].filter(Boolean)
