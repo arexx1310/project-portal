@@ -49,10 +49,10 @@ export const getStudents = async (req, res, next) => {
   
     if (department) {
       // Added missing validation
-      if (!mongoose.Types.ObjectId.isValid(departmentConfig)) {
+      if (!mongoose.Types.ObjectId.isValid(department)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid departmentConfig ID",
+          message: "Invalid department ID",
         });
       }
       filter.department = new mongoose.Types.ObjectId(department);

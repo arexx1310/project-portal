@@ -18,7 +18,7 @@ import ConfirmModal from "../../components/common/ConfirmModal";
 // Services
 import projectProposalService from "../../services/Student/projectProposalService";
 
-import toast from "react-hot-toast";
+import {toast} from "react-hot-toast";
 
 const CreateProposal = () => {
   const {user , loading} = useAuth();

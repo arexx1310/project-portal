@@ -294,8 +294,6 @@ export const deleteSession = async (req, res, next) => {
       await User.deleteMany({ _id: { $in: userIds }, role: "student" }).session(mongoSession);
       await Group.deleteMany({ session: id }).session(mongoSession);
       await Project.deleteMany({ session: id }).session(mongoSession);
-      await ProjectApprovalRequest.deleteMany({}).session(mongoSession);
-      await GroupInvite.deleteMany({}).session(mongoSession);
       await Session.deleteOne({ _id: id }).session(mongoSession);
     });
 
