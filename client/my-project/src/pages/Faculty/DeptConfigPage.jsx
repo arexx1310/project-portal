@@ -32,22 +32,34 @@ const toISOFromDateInput = (val) => {
 
 // ─── sub-components (same API as original ConfigInput) ──────────────────────
 
-const ConfigInput = ({ label, icon: Icon, type = "number", name, value, onChange, disabled, placeholder }) => (
-  <div className="space-y-2 group">
-    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 ml-1 group-focus-within:text-blue-500 transition-colors">
-      <Icon size={14} className="text-blue-500" /> {label}
-    </label>
-    <input
-      type={type}
-      name={name}
-      value={value}
-      onChange={onChange}
-      disabled={disabled}
-      placeholder={placeholder}
-      className="w-full h-14 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl px-6 font-bold outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-    />
-  </div>
-);
+const ConfigInput = ({ label, icon: Icon, type = "number", name, value, onChange, disabled, placeholder }) => {
+  
+  // This function stops the scroll-to-change behavior
+  const handleWheel = (e) => {
+    if (type === "number") {
+      e.target.blur(); // Briefly remove focus to stop the scroll increment
+    }
+  };
+
+  return (
+    <div className="space-y-2 group">
+      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 ml-1 group-focus-within:text-blue-500 transition-colors">
+        <Icon size={14} className="text-blue-500" /> {label}
+      </label>
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        onWheel={handleWheel} // Add this line
+        disabled={disabled}
+        placeholder={placeholder}
+        step={type === "number" ? "1" : undefined} // Ensures whole numbers
+        className="w-full h-14 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl px-6 font-bold outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed appearance-none"
+      />
+    </div>
+  );
+};
 
 // ─── confirmation modal (identical to original) ──────────────────────────────
 

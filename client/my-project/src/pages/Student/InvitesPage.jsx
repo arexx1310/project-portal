@@ -191,11 +191,11 @@ const GroupFormationPage = () => {
           successMsg = "Group created!";
           break;
         case 'ACCEPT':
-          await groupService.respondToInvite(modal.data, 'Accept');
+          const res = await groupService.respondToInvite(modal.data, 'Accept');
           const { data: refreshData } = await axiosInstance.get(API_PATHS.AUTH.ME);
           setUser(refreshData.user);
           setInvites([]);
-          successMsg = "Joined group!";
+          successMsg = res.message;
           break;
         case 'REJECT':
           await groupService.respondToInvite(modal.data, 'Reject');
