@@ -6,6 +6,8 @@ export const API_PATHS = {
     LOGIN: "/api/auth/login",
     LOGOUT: "/api/auth/logout",
     ME: "/api/auth/me",
+    FORGOT_PASSWORD: "/api/auth/forgot-password",
+    VERIFY_OTP:      "/api/auth/verify-otp",
   },
 
   ADMIN: {

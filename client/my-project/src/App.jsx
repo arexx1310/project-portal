@@ -8,6 +8,8 @@ import AppLayout from "./components/layout/AppLayout";
 // Auth pages
 import AdminLoginPage from "./pages/Auth/AdminLoginPage";
 import LoginPage from "./pages/Auth/LoginPage";
+import ForgotPasswordPage from "./pages/Auth/ForgotPassword";
+import VerifyOtpPage from "./pages/Auth/VerifyOTP";
 
 // Admin pages
 import AdminDashboard from "./pages/Admin/DashboardPage";
@@ -81,6 +83,8 @@ const App = () => {
               : <AdminLoginPage />
           }
         />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/verify-otp"      element={<VerifyOtpPage />} />
 
         {/* ADMIN */}
         <Route element={<ProtectedRoute allowedRoles={["admin"]} redirectTo="/login" />}>

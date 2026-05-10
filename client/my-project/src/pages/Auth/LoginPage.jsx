@@ -142,9 +142,19 @@ const LoginPage = () => {
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
+                  
                 </div>
               </div>
-
+              
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => navigate("/forgot-password")}
+                      className="text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
               <button
                 type="submit"
                 disabled={loading}
