@@ -30,6 +30,7 @@
     "multer": "^2.0.2",
     "node-cache": "^5.1.2",
     "node-cron": "^4.2.1",
+    "nodemailer": "^8.0.7",
     "socket.io": "^4.8.3",
     "xlsx": "^0.18.5",
     "xss-clean": "^0.1.4"
