@@ -17,7 +17,6 @@ import {
 import { toast } from "react-hot-toast";
 
 const LoginPage = () => {
-  const [role, setRole] = useState("student");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false); // New state
@@ -47,7 +46,7 @@ const LoginPage = () => {
 
       navigate(routes[data.user.role] || "/");
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || "Authentication failed");
+      toast.error(err?.message || "Authentication failed");
     } finally {
       setLoading(false);
     }
@@ -69,7 +68,7 @@ const LoginPage = () => {
 
           <div className="space-y-6">
             <h2 className="text-4xl font-extrabold leading-tight">
-              Official BTP <br />
+              Official Project <br />
               <span className="text-indigo-400">Management System</span>
             </h2>
             <p className="text-slate-400 text-lg max-w-md">
@@ -92,43 +91,12 @@ const LoginPage = () => {
           <div className="bg-white border border-slate-200 shadow-xl rounded-3xl p-8 lg:p-10">
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-slate-900">Sign In</h2>
-              <p className="text-slate-500 text-sm mt-1">Select your role to access the portal</p>
-            </div>
-
-            {/* Role Toggle */}
-            <div className="relative flex p-1.5 bg-slate-100 rounded-xl mb-8">
-              <div
-                className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-white rounded-lg shadow-sm transition-transform duration-300 ease-in-out ${
-                  role === "faculty" ? "translate-x-full" : "translate-x-0"
-                }`}
-              />
-              <button
-                type="button"
-                onClick={() => setRole("student")}
-                className={`relative z-10 flex-1 py-2 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
-                  role === "student" ? "text-indigo-600" : "text-slate-500"
-                }`}
-              >
-                <GraduationCap className="w-4 h-4" />
-                Student
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole("faculty")}
-                className={`relative z-10 flex-1 py-2 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
-                  role === "faculty" ? "text-indigo-600" : "text-slate-500"
-                }`}
-              >
-                <Briefcase className="w-4 h-4" />
-                Faculty
-              </button>
+          
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700 ml-1">
-                  {role === "student" ? "Student ID / Email" : "Faculty ID / Email"}
-                </label>
+            
                 <div className="relative">
                   <UserCircle
                     className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${
@@ -142,7 +110,7 @@ const LoginPage = () => {
                     onFocus={() => setFocusedField("email")}
                     onBlur={() => setFocusedField(null)}
                     required
-                    placeholder={role === "student" ? "id@university.edu" : "name.dept@university.edu"}
+                    placeholder="id@university.edu"
                     className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white"
                   />
                 </div>
@@ -186,7 +154,7 @@ const LoginPage = () => {
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    Access {role === "student" ? "Student" : "Faculty"} Portal
+                    Access Portal
                     <ChevronRight className="w-4 h-4" />
                   </>
                 )}

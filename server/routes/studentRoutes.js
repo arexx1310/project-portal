@@ -2,6 +2,8 @@ import express from "express";
 import protect from "../middleware/protect.js";
 import authorize from "../middleware/authorize.js";
 import { attachStudentProfile ,requireProgram } from "../middleware/studentAccess.js";
+
+import uploadPdf from "../config/multer.js";
 import { getNotifications } from "../controllers/notificationController.js";
 
 import {
@@ -28,6 +30,9 @@ import {
   createProjectRequest,
   cancelProjectRequest,
   getMyProjects,
+  uploadDocument,
+  getDocuments,
+  deleteDocument,
 } from "../controllers/student/projectController1.js";
 
 import { getGroupDetails} from "../controllers/common/groupControllers.js";
@@ -51,6 +56,8 @@ import {
 } from "../controllers/common/publicationController.js";
 
 import { createMtpProjectRequest } from "../controllers/student/mtechControllers.js";
+
+
 
 const router = express.Router();
 
@@ -95,6 +102,16 @@ router.get("/projects/:projectId/weekly-updates",getWeeklyUpdates);
 router.get("/projects/:projectId/tasks",getProjectTasks);
 router.post("/projects/:projectId/tasks/:itemId/submit",submitTask);
 router.put("/projects/:projectId/tasks/:itemId/submission",editTaskSubmission);
+
+router.post(
+  "/projects/:projectId/upload-document",
+  uploadPdf.single("document"),
+  uploadDocument
+);
+
+router.get("/projects/:projectId/get-documents",getDocuments);
+
+router.delete("/projects/:projectId/delete-report/:documentId",deleteDocument);
 
 /* ============== ALL PUBLICATIONS DETAILS AND UPDATES ============ */
 router.get("/projects/:projectId/publications",                         listPublications);

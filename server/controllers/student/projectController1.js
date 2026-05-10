@@ -7,6 +7,8 @@ import Session from "../../models/Session.js";
 import Faculty from "../../models/Faculty.js";
 import Department from "../../models/DepartmentConfig.js";
 import { sendNotification } from "../notificationController.js";
+import { deleteFileFromDrive, getTemporaryViewUrl, resolveUploadFolder, uploadFileToDrive } from "../../config/googledrive.js";
+
 
 
 export const getMyProjects = async (req, res, next) => {
@@ -482,6 +484,164 @@ export const cancelProjectRequest = async (req, res, next) => {
     next(error);
   } finally {
     dbSession.endSession();
+  }
+};
+
+
+// ---------------------------------------------------------------------------
+// Resolve human-readable labels needed to build the Drive folder path
+// ---------------------------------------------------------------------------
+ 
+const resolveLabels = async (project, student) => {
+  const [session, group, department] = await Promise.all([
+    Session.findById(project.session).lean(),
+    Group.findById(project.group).lean(),
+    Department.findById(student.department).lean(),
+  ]);
+ 
+  if (!session || !group || !department) {
+    const err = new Error("Could not resolve session, group or department.");
+    err.statusCode = 500;
+    throw err;
+  }
+ 
+  return {
+    programType:    student.isPG ? "PG" : "UG",
+    sessionName:    session.name,
+    departmentName: department.department,
+    groupName:      group.name,
+  };
+};
+
+
+export const uploadDocument = async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file uploaded." });
+    }
+
+    const { label } = req.body;
+
+    if (!label?.trim()) {
+      return res.status(400).json({ success: false, message: "Document label is required." });
+    }
+
+    // Bug fixed: was missing await, and had typo "projecId"
+    const project = await Project.findById(projectId).lean();
+
+    if (!project) {
+      return res.status(404).json({ success: false, message: "Project not found." });
+    }
+
+    // Bug fixed: was req.student but middleware attaches to req.student
+    if (!req.student.groupId || project.group.toString() !== req.student.groupId.toString()) {
+      return res.status(403).json({ success: false, message: "You do not have access to this project." });
+    }
+
+    const labels = await resolveLabels(project, req.student);
+
+    // Bug fixed: was "folderIds" (typo) and category was not pulled from body
+    const folderId = await resolveUploadFolder({
+      ...labels,
+      category: "documents",
+    });
+
+    // Bug fixed: was passing undefined folderId
+    const { fileId , webViewLink} = await uploadFileToDrive({
+      buffer:       req.file.buffer,
+      originalName: req.file.originalname,
+      folderId,
+    });
+
+    // Push { label, url } into project.documents and save
+    const updated = await Project.findByIdAndUpdate(
+      projectId,
+      { $push: { documents: { label: label.trim(), fileId, url:webViewLink} } },
+      { new: true, select: "documents" }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Document uploaded successfully.",
+      data: updated.documents.at(-1), // return the newly added entry
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getDocuments = async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+
+    const project = await Project.findById(projectId)
+      .select("documents group")
+      .lean();
+
+    if (!project) {
+      return res.status(404).json({ success: false, message: "Project not found." });
+    }
+
+    if (!req.student.groupId || project.group.toString() !== req.student.groupId.toString()) {
+      return res.status(403).json({ success: false, message: "You do not have access to this project." });
+    }
+
+    const data = project.documents.map((d) => ({
+      _id: d._id,
+      label: d.label,
+      url: d.url,
+      fileId: d.fileId,  
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: data || []
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const deleteDocument = async (req, res, next) => {
+  try {
+    const { projectId, documentId } = req.params;
+
+    const project = await Project.findById(projectId)
+      .select("documents group")
+      .lean();
+
+    if (!project) {
+      return res.status(404).json({ success: false, message: "Project not found." });
+    }
+
+    if (!req.student.groupId || project.group.toString() !== req.student.groupId.toString()) {
+      return res.status(403).json({ success: false, message: "You do not have access to this project." });
+    }
+
+    if (project.status === "Completed") {
+      return res.status(400).json({ success: false, message: "Project has been completed. No changes allowed"});
+    }
+    const document = project.documents.find((d) => d._id.toString() === documentId);
+
+    if (!document) {
+      return res.status(404).json({ success: false, message: "Document not found." });
+    }
+
+    // Extract Drive file ID from the URL and delete from Drive
+    const fileId = document.fileId;
+    
+    if (fileId) await deleteFileFromDrive(fileId).catch(() => {});
+
+    await Project.findByIdAndUpdate(projectId, {
+      $pull: { documents: { _id: documentId } },
+    });
+
+    return res.status(200).json({ success: true, message: "Document deleted successfully." });
+  } catch (err) {
+    next(err);
   }
 };
 

@@ -94,6 +94,45 @@ const projectServices = {
     return response.data;
   },
 
+  /* ============== DOCUMENTS ============ */
+
+    // Upload document (multipart/form-data)
+    uploadDocument: async (projectId, formData) => {
+      // formData should contain:
+      // { document: File, label : String}
+
+      const response = await axiosInstance.post(
+        API_PATHS.STUDENT.UPLOAD_DOCUMENT(projectId),
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      return response.data;
+    },
+
+    // Get all documents
+    getDocuments: async (projectId) => {
+      const response = await axiosInstance.get(
+        API_PATHS.STUDENT.GET_DOCUMENTS(projectId)
+      );
+
+      return response.data;
+    },
+
+
+    // Delete document
+    deleteDocument: async (projectId, documentId) => {
+      const response = await axiosInstance.delete(
+        API_PATHS.STUDENT.DELETE_DOCUMENT(projectId, documentId)
+      );
+
+      return response.data;
+    },
+
 };
 
 export default projectServices;

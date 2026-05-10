@@ -7,7 +7,9 @@ import ProjectDetails from "../../components/common/Project/ProjectDetails";
 
 import FacultyWorkManager from "../Faculty/PorgressFaculty";
 import StudentWorkManager from "../Student/ProgressStudent";
+
 import Publication from "./Publications";
+import Documents from "./FileUploadPage";
 
 const ProjectTabs = ({ projectId }) => {
   const { user } = useAuth();
@@ -18,6 +20,7 @@ const ProjectTabs = ({ projectId }) => {
     { id: "details", label: "Details", icon: FileText },
     { id: "updates", label: "Weekly Progress", icon: Clock },
     { id: "publication", label: "Publication", icon: GraduationCap },
+    { id: "documents", label: "Documents", icon: FileText},
   ];
 
   const renderTabContent = () => {
@@ -29,6 +32,8 @@ const ProjectTabs = ({ projectId }) => {
         return <StudentWorkManager projectId={projectId} />;
       case "publication":
         return <Publication projectId={projectId} role={user.role}/>;
+      case "documents":
+        return <Documents projectId={projectId} isStudent={user.role==="faculty" ? false : true}/>;
       default:
         return null;
     }

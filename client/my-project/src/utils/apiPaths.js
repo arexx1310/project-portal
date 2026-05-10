@@ -189,6 +189,15 @@ export const API_PATHS = {
     EDIT_TASK_SUBMISSION: (projectId, itemId) =>
       `/api/student/projects/${projectId}/tasks/${itemId}/submission`,
 
+    UPLOAD_DOCUMENT: (projectId) =>
+      `/api/student/projects/${projectId}/upload-document`,
+
+    GET_DOCUMENTS: (projectId) =>
+      `/api/student/projects/${projectId}/get-documents`,
+
+    DELETE_DOCUMENT: (projectId, documentId) =>
+      `/api/student/projects/${projectId}/delete-report/${documentId}`,
+
     /* ============== PUBLICATIONS ============ */
     LIST_PUBLICATIONS:    (projectId) => `/api/student/projects/${projectId}/publications`,
     GET_PUBLICATION:      (projectId, pubId) => `/api/student/projects/${projectId}/publications/${pubId}`,

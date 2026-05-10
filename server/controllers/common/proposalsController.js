@@ -41,11 +41,6 @@ export const listProjectRequests = async (req, res, next) => {
     const requests = await ProjectApprovalRequest.find(filter)
       .select("group project.title project.domain project.semester supervisorInvites status")
       .populate("group", "name programType")
-      .populate({
-        path: "supervisorInvites.faculty",
-        select: "user",
-        populate: { path: "user", select: "name" },
-      })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -62,10 +57,6 @@ export const listProjectRequests = async (req, res, next) => {
       projectTitle:  r.project?.title || "",
       projectDomain: r.project?.domain || "",
       semester:      r.project?.semester || "",
-      supervisors:   r.supervisorInvites.map((invite) => ({
-        name:   invite.faculty?.user?.name ?? null,
-        status: invite.status,
-      })),
       status: r.status,
     }));
 
