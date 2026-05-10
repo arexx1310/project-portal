@@ -334,7 +334,7 @@ export const getDepartmentConfig = async (req, res, next) => {
     }
 
     const config = await Department.findById(departmentId)
-      .select("_id department specializations btpConfig mtpConfig")
+      .select("_id department btpConfig mtpConfig")
       .lean();
 
     if (!config) {

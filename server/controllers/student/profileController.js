@@ -24,15 +24,15 @@ export const getProfile = async (req, res, next) => {
             data: { 
                     name: userData.name,
                     email: userData.email,
-                    phoneNumber: studentProfile.phoneNumber,
-                    rollNumber: studentProfile.rollNumber,
-                    department: studentProfile.department.department,
-                    programType: studentProfile.programType,
+                    phoneNumber: studentProfile.phoneNumber ?? null,
+                    rollNumber: studentProfile.rollNumber ?? "",
+                    department: studentProfile.department?.department ?? "",
+                    programType: studentProfile.programType ?? "",
                     specialization: studentProfile.specialization || "",
-                    semester: studentProfile.semester,
-                    session: studentProfile.session.name,
-                    admissionYear: studentProfile.admissionYear,
-                    groupId: studentProfile.groupId
+                    semester: studentProfile.semester ?? "",
+                    session: studentProfile.session.name ?? "",
+                    admissionYear: studentProfile.admissionYear ?? "",
+                    groupId: studentProfile.groupId ?? null
             },
             message: "User data fetched successfully."
         });

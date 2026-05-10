@@ -43,11 +43,16 @@ export const API_PATHS = {
 
     /* ============== NOTIFICATIONS ============ */
     GET_NOTIFICATIONS: "/api/faculty/notifications",
+    SEND_NOTIFICATION: "/api/faculty/notifications",
 
     /* ============== DEPARTMENT CONFIG ============ */
     GET_DEPT_CONFIG: "/api/faculty/config",
     UPDATE_BTP_CONFIG: (departmentId) => `/api/faculty/config/${departmentId}/btp`,
     UPDATE_MTP_CONFIG: (departmentId) => `/api/faculty/config/${departmentId}/mtp`,
+
+    GET_UG_STUDENTS: "/api/faculty/department/ug-students",
+    GET_PG_STUDENTS: "/api/faculty/department/pg-students",
+    
     GENERATE_UG_STATUS_REPORT:   (sessionId) =>
       `/api/faculty/reports/ug/${sessionId}/status`,
 
@@ -88,6 +93,8 @@ export const API_PATHS = {
       `/api/faculty/projects/${projectId}`,
     EDIT_PROJECT_DETAILS: (projectId) =>
       `/api/faculty/projects/${projectId}`,
+    GET_DOCUMENTS: (projectId) =>
+      `/api/faculty/projects/${projectId}/get-documents`,
 
     /* ============== TASKS ============ */
     CREATE_TASK: (projectId) =>

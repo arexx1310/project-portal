@@ -19,13 +19,12 @@ export const uploadStudents = async (req, res, next) => {
         message: "Excel file is required",
       });
     }
-    const { departmentId } = req.params;
-    let { specialization, programType } = req.body;
 
-    if (
-      typeof programType !== "string" || programType.trim() === ""
-    ) {
-        return res.status(400).json({
+    const { departmentId } = req.params;
+    let { programType } = req.body;                        // specialization removed
+
+    if (typeof programType !== "string" || programType.trim() === "") {
+      return res.status(400).json({
         success: false,
         message: "Program type is required",
       });
@@ -33,18 +32,16 @@ export const uploadStudents = async (req, res, next) => {
 
     programType = programType.trim();
 
-    if ( !["btech", "mtech"].includes(programType.toLowerCase())) {
-        return res.status(400).json({
-            success: false,
-            message: "ProgramType must be either BTech or MTech."
-        });
+    if (!["btech", "mtech"].includes(programType.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: "ProgramType must be either BTech or MTech.",
+      });
     }
 
     const level = programType.toLowerCase() === "btech" ? "UG" : "PG";
+    const sem = level === "UG" ? 7 : 3;
 
-    const sem =  level === "UG" ? 7 : 3;
-
-    // Validate form data
     if (!departmentId) {
       return res.status(400).json({
         success: false,
@@ -52,27 +49,18 @@ export const uploadStudents = async (req, res, next) => {
       });
     }
 
-    // ObjectId validation (prevents Mongo crash)
     if (!mongoose.Types.ObjectId.isValid(departmentId)) {
       return res.status(400).json({
         success: false,
         message: "Invalid department ID",
       });
     }
-    
-    // specialization required
-    if (level === "UG" && (typeof specialization !== "string" || specialization.trim() === "")) {
-      return res.status(400).json({
-        success: false,
-        message: "Specialization is required",
-      });
-    }
 
-    specialization = specialization?.trim().toUpperCase();
+    // specialization body validation block removed entirely
 
-    // Fetch department config
+    // Fetch department config — specializations no longer needed
     const deptConfig = await Department.findById(departmentId)
-      .select("_id specializations")
+      .select("_id")
       .lean();
 
     if (!deptConfig) {
@@ -80,24 +68,6 @@ export const uploadStudents = async (req, res, next) => {
         success: false,
         message: "Department configuration not found",
       });
-    }
-
-    if (
-      level === "UG" &&
-      Array.isArray(deptConfig.specializations) &&
-      deptConfig.specializations.length > 0
-    ) {
-
-      const normalizedSpecs = deptConfig.specializations.map(s =>
-        s.trim().toUpperCase()
-      );
-
-      if (!normalizedSpecs.includes(specialization)) {
-        return res.status(400).json({
-          success: false,
-          message: `Invalid specialization. Allowed: ${normalizedSpecs.join(", ")}`,
-        });
-      }
     }
 
     // 2. Active session
@@ -121,6 +91,7 @@ export const uploadStudents = async (req, res, next) => {
       });
     }
 
+    // "spec" is UG-only; checked per-row below
     const REQUIRED_FIELDS = ["name", "email", "phonenumber", "rollnumber"];
 
     // Normalize keys
@@ -134,18 +105,18 @@ export const uploadStudents = async (req, res, next) => {
 
     // 4. Prefetch existing emails & rolls
     const emails = normalizedRows
-      .map(r => r.email?.toLowerCase().trim())
+      .map((r) => r.email?.toLowerCase().trim())
       .filter(Boolean);
 
     const rolls = normalizedRows
-      .map(r => r.rollnumber?.toString().trim())
+      .map((r) => r.rollnumber?.toString().trim())
       .filter(Boolean);
 
     const existingUsers = await User.find({ email: { $in: emails } }).select("email");
     const existingStudents = await Student.find({ rollNumber: { $in: rolls } }).select("rollNumber");
 
-    const existingEmailSet = new Set(existingUsers.map(u => u.email));
-    const existingRollSet = new Set(existingStudents.map(s => s.rollNumber));
+    const existingEmailSet = new Set(existingUsers.map((u) => u.email));
+    const existingRollSet = new Set(existingStudents.map((s) => s.rollNumber));
 
     // 5. Prepare bulk arrays
     const usersToInsert = [];
@@ -155,12 +126,11 @@ export const uploadStudents = async (req, res, next) => {
     let skipped = 0;
     const skipDetails = [];
 
-    // Salt once (performance optimization)
     const salt = await bcrypt.genSalt(10);
 
     for (const row of normalizedRows) {
       // Required fields check
-      const missingField = REQUIRED_FIELDS.find(f => !row[f]);
+      const missingField = REQUIRED_FIELDS.find((f) => !row[f]);
       if (missingField) {
         skipped++;
         skipDetails.push({ row, reason: `Missing ${missingField}` });
@@ -171,6 +141,10 @@ export const uploadStudents = async (req, res, next) => {
       const email = row.email.toLowerCase().trim();
       const rollNumber = row.rollnumber.toString().trim();
       const phoneNumber = row.phonenumber.toString().trim();
+
+      // Per-row specialization from "Spec" column (UG only)
+      const specialization =
+        level === "UG" ? row.spec?.toString().trim().toUpperCase() : null;
 
       // Duplicate check
       if (existingEmailSet.has(email) || existingRollSet.has(rollNumber)) {
@@ -190,8 +164,6 @@ export const uploadStudents = async (req, res, next) => {
       }
 
       const userId = new mongoose.Types.ObjectId();
-
-      // Hash roll number as password
       const hashedPassword = await bcrypt.hash(rollNumber, salt);
 
       usersToInsert.push({
@@ -208,11 +180,12 @@ export const uploadStudents = async (req, res, next) => {
         rollNumber,
         phoneNumber,
         department: deptConfig._id,
-        specialization: level === "UG" ? specialization : null,
+        specialization,                  // now per-row, null for PG
         semester: sem,
         programType: level,
         session: activeSession._id,
       });
+
       created++;
     }
 
@@ -233,7 +206,7 @@ export const uploadStudents = async (req, res, next) => {
       dbSession.endSession();
     }
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       summary: {
         totalRows: rows.length,
@@ -242,7 +215,6 @@ export const uploadStudents = async (req, res, next) => {
         details: skipDetails,
       },
     });
-
   } catch (error) {
     dbSession.endSession();
     next(error);

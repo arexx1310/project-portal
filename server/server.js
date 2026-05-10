@@ -10,7 +10,7 @@ import rateLimit from "express-rate-limit";
 
 import connectDB from "./config/db.js";
 import errorHandler from "./middleware/errorHandler.js";
-import { registerDeadlineCrons } from "./controllers/cron/deadlineController.js";
+
 
 // Routes
 import authRoutes from "./routes/authRoutes.js";
@@ -22,7 +22,7 @@ import studentRoutes from "./routes/studentRoutes.js";
 
 // Admin seed
 import createAdmin from "./config/initAdmin.js";
-
+import { initCronJobs } from "./controllers/cron/cronjobs.js";
 /* ================= APP ================= */
 const app = express();
 
@@ -106,7 +106,7 @@ app.use(globalLimiter);
 /* ================= DB + ADMIN ================= */
 connectDB().then(() => {
   createAdmin();
-  registerDeadlineCrons();
+  initCronJobs();
 });
 
 /* ================= ROUTES ================= */

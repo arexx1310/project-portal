@@ -70,27 +70,66 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
     if (user.role === "faculty") {
       return [
         { to: "/faculty/dashboard", icon: LayoutDashboard, text: "Dashboard" },
-        { to: "/faculty/profile", icon: User, text: "Profile"},
-        { to: "/faculty/change-password",icon: Info, text: "Change Password"},
-        { to: "/faculty/config", icon: Settings2, text: "Department Config" },
-        hasFacultyRole(["BTP_COMMITTEE_HEAD", "BTP_COMMITTEE_MEMBER"]) && 
-          { to: "/faculty/btp/student-management", icon: Settings2, text: "Student Admin" },
+        { to: "/faculty/profile", icon: User, text: "Profile" },
+
+        {
+          text: "Department",
+          icon: Settings2,
+          isDropdown: true,
+          subLinks: [
+            {
+              to: "/faculty/config",
+              icon: Settings2,
+              text: "Department Config",
+            },
+
+            hasFacultyRole([
+              "BTP_COMMITTEE_HEAD",
+              "BTP_COMMITTEE_MEMBER",
+              "HOD",
+            ]) && {
+              to: "/faculty/department-overview",
+              icon: ListChecks,
+              text: "Department Overview",
+            },
+
+            hasFacultyRole([
+              "BTP_COMMITTEE_HEAD",
+              "BTP_COMMITTEE_MEMBER",
+              "HOD",
+            ]) && {
+              to: "/faculty/student-management",
+              icon: FileText,
+              text: "Reports",
+            },
+          ].filter(Boolean),
+        },
+
         {
           text: "B.Tech Groups",
           icon: ListChecks,
           isDropdown: true,
           subLinks: [
             { to: "/faculty/my-groups", icon: ListChecks, text: "My Groups" },
-            { to: "/faculty/project-proposals/ug", icon: FileText, text: "Proposals" }
+            {
+              to: "/faculty/project-proposals/ug",
+              icon: FileText,
+              text: "Proposals",
+            },
           ],
         },
+
         {
           text: "M.Tech Projects",
           icon: ListChecks,
           isDropdown: true,
           subLinks: [
-            { to: "/faculty/pg/students", icon: ListChecks, text: "My Groups" },
-            { to: "/faculty/project-proposals/pg", icon: FileText, text: "Proposals" }
+            { to: "/faculty/pg/students", icon: ListChecks, text: "My Scholars" },
+            {
+              to: "/faculty/project-proposals/pg",
+              icon: FileText,
+              text: "Proposals",
+            },
           ],
         },
       ].filter(Boolean);
@@ -100,7 +139,6 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
     return [
       { to: "/student/dashboard", icon: LayoutDashboard, text: "Dashboard" },
       { to: "/student/profile", icon: User, text: "Profile"},
-      { to: "/student/change-password",icon: Info, text: "Change Password"},
       { 
         text: "Project Management",
         icon: FileText,

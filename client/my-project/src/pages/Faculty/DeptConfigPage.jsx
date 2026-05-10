@@ -11,6 +11,7 @@ import {
 import deptConfigService from "../../services/Faculty/deptConfigService";
 import Header from "../../components/ui/Header";
 
+
 // ─── helpers (same as original page) ────────────────────────────────────────
 
 const hasFacultyRole = (user, roles) => {
@@ -544,13 +545,7 @@ const DeptConfigPage = () => {
               <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mt-4 italic">
                 {config.department}
               </h1>
-              <div className="flex flex-wrap gap-2 mt-4">
-                {config.specializations?.map((spec, i) => (
-                  <span key={i} className="px-3 py-1 bg-slate-50 border border-slate-100 text-slate-500 text-[10px] font-bold uppercase rounded-lg">
-                    {spec}
-                  </span>
-                ))}
-              </div>
+              
 
               {!canEditBTP && !canEditMTP && (
                 <div className="mt-8 flex items-center gap-3 p-4 bg-amber-50 border border-amber-100 rounded-2xl text-amber-700">

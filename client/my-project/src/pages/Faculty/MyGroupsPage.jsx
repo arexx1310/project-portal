@@ -11,6 +11,7 @@ import generalServices from "../../services/Faculty/generalService";
 // Reusable Components
 import GroupList from "../../components/common/Group/GroupList"; 
 
+import toast from "react-hot-toast";
 const MyGroupsPage = ({isPG=false}) => {
   const navigate = useNavigate();
   
@@ -30,10 +31,11 @@ const MyGroupsPage = ({isPG=false}) => {
         await myGroupsService.getAllGroups(sessionId);
 
       if (response.success) {
+        toast.success("Group Fetched");
         setGroups(response.data);
       }
     } catch (error) {
-      console.error("Failed to fetch groups:", error);
+      toast.error(error?.message || "Failed to fetch groups:");
     } finally {
       setLoading(false);
     }
@@ -53,7 +55,7 @@ const MyGroupsPage = ({isPG=false}) => {
           setSessions(sessionRes.data);
         }
       } catch (error) {
-        console.error("Initialization failed:", error);
+        toast.error("Initialization failed:");
       }
     };
 

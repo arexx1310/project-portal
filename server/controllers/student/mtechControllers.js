@@ -5,6 +5,7 @@ import Faculty from "../../models/Faculty.js";
 import Group from "../../models/Group.js";
 import Project from "../../models/Project.js";
 
+import {notifyUser} from "../notificationController.js";
 
 /**
  * @desc Submit a project approval request
@@ -49,7 +50,7 @@ export const createMtpProjectRequest = async (req, res, next) => {
 
     // ── 6. Load group ─────────────────────────────────────────────────────────
     const group = await Group.findById(groupId)
-      .select("_id status departments supervisors")
+      .select("_id name status departments supervisors")
       .lean()
       .session(dbSession);
 
@@ -192,9 +193,32 @@ export const createMtpProjectRequest = async (req, res, next) => {
         });
       }
 
-      if (!group.supervisors?.length) {
-        await dbSession.abortTransaction();
-        return res.status(400).json({ success: false, message: "No supervisors found on this group." });
+      // ── Resolve supervisors: inherit from group, or fall back to body ────────
+      if (group.supervisors?.length > 0) {
+        resolvedSupervisorIds = group.supervisors;
+      } else {
+        if (!Array.isArray(supervisorIds) || supervisorIds.length === 0) {
+          await dbSession.abortTransaction();
+          return res.status(400).json({ success: false, message: "No supervisors found on this group. Please provide supervisor IDs." });
+        }
+
+        if (supervisorIds.some((id) => !mongoose.Types.ObjectId.isValid(id))) {
+          await dbSession.abortTransaction();
+          return res.status(400).json({ success: false, message: "One or more supervisor IDs are invalid." });
+        }
+
+        const uniqueSupervisorIds = [...new Set(supervisorIds.map(String))];
+        const facultyRecords = await Faculty.find({ _id: { $in: uniqueSupervisorIds } })
+          .select("_id")
+          .lean()
+          .session(dbSession);
+
+        if (facultyRecords.length !== uniqueSupervisorIds.length) {
+          await dbSession.abortTransaction();
+          return res.status(404).json({ success: false, message: "One or more supervisors were not found." });
+        }
+
+        resolvedSupervisorIds = facultyRecords.map((f) => f._id);
       }
 
       // ── Duplicate pending request check ───────────────────────────────────
@@ -209,8 +233,7 @@ export const createMtpProjectRequest = async (req, res, next) => {
         return res.status(400).json({ success: false, message: `A pending project approval request already exists for this group for semester ${semester}.` });
       }
 
-      resolvedSupervisorIds = group.supervisors;
-      // 3-month rolling window — reasonable TTL for continuation semesters
+      // 3-month rolling window
       expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 3);
     }
@@ -246,29 +269,16 @@ export const createMtpProjectRequest = async (req, res, next) => {
 
     await dbSession.commitTransaction();
 
-    // ── 10. Notify supervisors (outside transaction — best-effort) ────────────
-    // const notifyTargets =
-    //   (semester === 1 || semester === 3)
-    //     ? (facultyRecords ?? [])
-    //         .map((f) => f.user)
-    //         .filter(Boolean)
-    //         .map((u) => ({ _id: u._id, role: u.role }))
-    //     : resolvedSupervisorIds.map((id) => ({ _id: id }));
-    //
-    // if (notifyTargets.length > 0) {
-    //   await safeNotify(
-    //     {
-    //       type: "PROJECT_PROPOSAL_SENT",
-    //       message: `A student has requested your supervision for MTP project "${title.trim()}".`,
-    //       refId: approvalRequest._id,
-    //       refModel: "ProjectApprovalRequest",
-    //       triggeredBy: req.user.id,
-    //     },
-    //     notifyTargets
-    //   );
-    // }
-
     const isOddSemester = semester === 1 || semester === 3;
+
+    if (semester === 1 || semester === 3) {
+      const supervisorUserIds = facultyRecords.map((f) => f.user._id);
+      await supervisorUserIds.map((userId) =>
+          notifyUser(userId, "faculty", req.user.id, `Supervision request received from "${group.name}" for M.Tech Thesis Project.`)
+        );
+    } else {
+      await notifyGroup(group._id, req.user.id, `Project proposal added for Phase 2 of M.Tech Thesis Project.`);
+    }
 
     return res.status(201).json({
       success: true,

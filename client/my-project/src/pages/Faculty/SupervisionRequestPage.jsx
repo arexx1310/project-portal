@@ -56,7 +56,7 @@ const SupervisorRequestPage = ({isPG = false}) => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (err) {
-      toast.error("Could not fetch request details");
+      toast.error(error?.message || "Could not fetch request details");
       setView("list");
     } finally {
       setDetailLoading(false);

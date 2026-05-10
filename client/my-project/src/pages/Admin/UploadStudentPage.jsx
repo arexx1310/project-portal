@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   UploadCloud,
-  FileSpreadsheet,
   Loader2,
   CheckCircle2,
   AlertCircle,
@@ -9,10 +8,10 @@ import {
   X,
   Users,
   Building2,
-  GraduationCap,
   Info,
   Trash2,
-  ArrowRight
+  ArrowRight,
+  BookOpen
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -28,9 +27,7 @@ const UploadStudentsPage = () => {
   const [showFormatModal, setShowFormatModal] = useState(false);
   const [allDeptData, setAllDeptData] = useState([]);
   const [selectedDept, setSelectedDept] = useState("");
-  const [availableSpecs, setAvailableSpecs] = useState([]);
-  const [selectedSpec, setSelectedSpec] = useState("");
-  const [selectedProgram, setSelectedProgram] = useState("BTech")
+  const [selectedProgram, setSelectedProgram] = useState("BTech");
   const [isDragging, setIsDragging] = useState(false);
 
   const fileInputRef = useRef(null);
@@ -46,16 +43,6 @@ const UploadStudentsPage = () => {
     };
     fetchDepts();
   }, []);
-
-  useEffect(() => {
-    if (selectedDept) {
-      const deptObj = allDeptData.find(d => d._id === selectedDept);
-      setAvailableSpecs(deptObj ? deptObj.specializations : []);
-    } else {
-      setAvailableSpecs([]);
-    }
-    setSelectedSpec("");
-  }, [selectedDept, allDeptData]);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target ? e.target.files[0] : e;
@@ -89,13 +76,14 @@ const UploadStudentsPage = () => {
     e.preventDefault();
     if (!file) return toast.error("Please select a file");
     if (!selectedDept) return toast.error("Department is required");
-    if (selectedProgram==="BTech" && !selectedSpec) return toast.error("Specialization is required for BTech.")
+    if (!selectedProgram) return toast.error("Program selection is required");
 
     setLoading(true);
     const toastId = toast.loading("Processing records...");
 
     try {
-      const res = await uploadService.uploadStudents(file, selectedDept, selectedSpec, selectedProgram);
+      
+      const res = await uploadService.uploadStudents(file, selectedDept, selectedProgram);
       if (res.success) {
         setSummary(res.summary);
         toast.success("Import successful!", { id: toastId });
@@ -106,17 +94,15 @@ const UploadStudentsPage = () => {
     } finally {
       setLoading(false);
       setSelectedDept("");
-      setSelectedSpec(""); 
     }
   };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 pb-20">
       <div className="max-w-8xl mx-auto space-y-8">
-      <Header title="Student Import" subtitle="Manage bulk provisioning securely" icon={Users} />
+        <Header title="Student Import" subtitle="Manage bulk provisioning securely" icon={Users} />
 
         <div className="grid lg:grid-cols-3 gap-8">
-          
           {/* Sidebar: Configuration */}
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
@@ -125,6 +111,7 @@ const UploadStudentsPage = () => {
               </h3>
               
               <div className="space-y-5">
+                {/* Department Selection */}
                 <div>
                   <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Department</label>
                   <div className="relative">
@@ -139,38 +126,22 @@ const UploadStudentsPage = () => {
                     </select>
                   </div>
                 </div>
+
+                {/* Program Selection */}
                 <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Department</label>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Academic Program</label>
                   <div className="relative">
-                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <select
                       value={selectedProgram}
                       onChange={(e) => setSelectedProgram(e.target.value)}
                       className="w-full pl-12 pr-4 h-12 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none appearance-none"
                     >
-                      <option value="">Select Program</option>
-                      {["BTech", "MTech"].map(d => <option key={d.index} value={d}>{d}</option>)}
+                      <option value="BTech">BTech</option>
+                      <option value="MTech">MTech</option>
                     </select>
                   </div>
                 </div>
-
-                {selectedProgram === "BTech" && (
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Specialization</label>
-                    <div className="relative">
-                      <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <select
-                      value={selectedSpec}
-                      onChange={(e) => setSelectedSpec(e.target.value)}
-                      disabled={!selectedDept}
-                      className="w-full pl-12 pr-4 h-12 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none disabled:opacity-50 appearance-none"
-                    >
-                      <option value="">Select Specialization</option>
-                      {availableSpecs.map(spec => <option key={spec} value={spec}>{spec}</option>)}
-                    </select>
-                  </div>
-                </div>
-                )}
               </div>
             </div>
 
@@ -233,64 +204,58 @@ const UploadStudentsPage = () => {
 
             <button
               onClick={handleUpload}
-              disabled={loading || !file }
+              disabled={loading || !file}
               className="w-full h-16 bg-blue-600 text-white rounded-[1.25rem] font-bold text-lg shadow-xl shadow-blue-200 hover:bg-blue-700 disabled:opacity-40 disabled:shadow-none transition-all flex items-center justify-center gap-3"
             >
               {loading ? <Loader2 className="animate-spin" /> : <CheckCircle2 size={22} />}
               {loading ? "Processing Database..." : "Complete Import"}
             </button>
 
-              {/* Import Summary Results */}
-              {summary && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-[2rem] shadow-sm">
-                      <p className="text-emerald-600 text-[10px] font-black uppercase tracking-widest mb-1">Successfully Created</p>
-                      <p className="text-4xl font-black text-emerald-700 tracking-tighter">{summary.created}</p>
+            {/* Import Summary Results */}
+            {summary && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-[2rem] shadow-sm">
+                    <p className="text-emerald-600 text-[10px] font-black uppercase tracking-widest mb-1">Successfully Created</p>
+                    <p className="text-4xl font-black text-emerald-700 tracking-tighter">{summary.created}</p>
+                  </div>
+                  <div className="bg-amber-50 border border-amber-100 p-6 rounded-[2rem] shadow-sm">
+                    <p className="text-amber-600 text-[10px] font-black uppercase tracking-widest mb-1">Records Skipped</p>
+                    <p className="text-4xl font-black text-amber-700 tracking-tighter">{summary.skipped}</p>
+                  </div>
+                </div>
+
+                {summary.details.length > 0 && (
+                  <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-xl shadow-slate-200/50">
+                    <div className="bg-slate-50 px-8 py-4 border-b border-slate-100">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Skipped Records Log</p>
                     </div>
-                    <div className="bg-amber-50 border border-amber-100 p-6 rounded-[2rem] shadow-sm">
-                      <p className="text-amber-600 text-[10px] font-black uppercase tracking-widest mb-1">Records Skipped</p>
-                      <p className="text-4xl font-black text-amber-700 tracking-tighter">{summary.skipped}</p>
+                    
+                    <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                      <div className="divide-y divide-slate-50">
+                        {summary.details.map((d, index) => (
+                          <div key={index} className="px-8 py-4 hover:bg-slate-50/50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-2">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600">
+                                <AlertCircle size={14} />
+                              </div>
+                              <div>
+                                <p className="text-sm font-black text-slate-700 leading-none">{d.email}</p>
+                                <p className="text-[10px] font-bold text-slate-400 mt-1">Registry Conflict</p>
+                              </div>
+                            </div>
+                            
+                            <span className="inline-flex items-center px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-[9px] font-black uppercase tracking-tight border border-amber-100/50">
+                              {d.reason}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
-
-                  {/* Details Section - Audit Log Style */}
-                  {summary.details.length > 0 && (
-                    <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-xl shadow-slate-200/50">
-                      <div className="bg-slate-50 px-8 py-4 border-b border-slate-100">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Skipped Records Log</p>
-                      </div>
-                      
-                      <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
-                        <div className="divide-y divide-slate-50">
-                          {summary.details.map((d, index) => (
-                            <div key={index} className="px-8 py-4 hover:bg-slate-50/50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-2">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600">
-                                  <AlertCircle size={14} />
-                                </div>
-                                <div>
-                                  <p className="text-sm font-black text-slate-700 leading-none">{d.email}</p>
-                                  <p className="text-[10px] font-bold text-slate-400 mt-1">Registry Conflict</p>
-                                </div>
-                              </div>
-                              
-                              <span className="inline-flex items-center px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-[9px] font-black uppercase tracking-tight border border-amber-100/50">
-                                {d.reason}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <div className="bg-slate-50/50 px-8 py-3 text-center">
-                        <p className="text-[9px] font-bold text-slate-400 italic">Total {summary.details.length} issues identified during import</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

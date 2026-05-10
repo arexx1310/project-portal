@@ -68,7 +68,7 @@ const GroupCard = ({ group, onView }) => {
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-bold text-slate-800 truncate leading-none">{student.name}</p>
                 <p className="text-[10px] text-slate-500 truncate mt-1">
-                  {student.email} • <span className="font-medium text-blue-600">{student.specialization}</span>
+                  {student.email} 
                 </p>
               </div>
             </div>

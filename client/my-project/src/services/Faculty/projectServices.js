@@ -80,6 +80,14 @@ const facultyProjectService = {
     );
     return res.data;
   },
+
+  getDocuments: async (projectId) => {
+      const response = await axiosInstance.get(
+        API_PATHS.FACULTY.GET_DOCUMENTS(projectId)
+      );
+
+      return response.data;
+    },
 };
 
 export default facultyProjectService;

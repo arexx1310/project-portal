@@ -10,6 +10,7 @@ import ProjectTabs from "../Common/ProjectTabs";
 
 import myGroupsService from "../../services/Faculty/groupsService";
 
+import toast from "react-hot-toast";
 const GroupDetailsPage = () => {
   const { groupId } = useParams();
   const [isPG,setIsPG] = useState(false);
@@ -36,7 +37,7 @@ const GroupDetailsPage = () => {
           }
         }
       } catch (error) {
-        console.error("Error fetching group details:", error);
+        toast.error(err?.message || "Error fetching group details:");
       } finally {
         setLoading(false);
       }

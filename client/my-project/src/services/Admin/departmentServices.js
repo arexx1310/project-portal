@@ -4,8 +4,8 @@ import { API_PATHS } from "../../utils/apiPaths";
 
 const departmentService = {
   /**
-   * Create department with specialization data
-   * @param {Object} payload : {department(string), specialization(array[string])}
+   * Create department with department name
+   * @param {Object} payload : {department(string)}
    */
   createDepartments: async (payload) => {
     const response = await axiosInstance.post(API_PATHS.ADMIN.CREATE_DEPARTMENTS,payload);
@@ -22,9 +22,9 @@ const departmentService = {
   },
 
     /**
-   * Edit department (name and/or specializations)
+   * Edit department (name )
    * @param {string} id
-   * @param {Object} payload : { department?, specializations? }
+   * @param {Object} payload : { department? }
    */
   updateDepartment: async (id, payload) => {
     const response = await axiosInstance.put(

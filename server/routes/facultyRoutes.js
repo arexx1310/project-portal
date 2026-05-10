@@ -8,7 +8,7 @@ import {
   updatePassword
 } from "../controllers/authController.js";
 
-import { getNotifications } from "../controllers/notificationController.js"
+import { sendNotification,getNotifications } from "../controllers/notificationController.js";
 
 
 import { authorizeFacultyRoles, attachFacultyProfile } from "../middleware/facultyAccess.js";
@@ -18,7 +18,7 @@ import { getSessions, getMyGroups, getMTechStudents } from "../controllers/facul
 import { getProjectRequestDetails, listProjectRequests } from "../controllers/common/proposalsController.js";
 
 import { getGroupDetails } from "../controllers/common/groupControllers.js";
-import { editProject, getProjectById } from "../controllers/common/projectController.js";
+import { editProject, getProjectById , getDocuments} from "../controllers/common/projectController.js";
 
 import {
   createTask,
@@ -47,6 +47,7 @@ import {
   generatePGStatusReport,
   generatePGProjectReport,
 } from "../controllers/faculty/reportController.js";
+import { getPGStudentOverview, getUGStudentOverview } from "../controllers/faculty/departmentOverview.js";
  
 
 const router = express.Router();
@@ -59,6 +60,7 @@ router.put("/updatePassword",updatePassword);
 
 /* ============== Notifications ============ */
 router.get("/notifications", getNotifications);
+router.post("/notifications", sendNotification);
 
 // PATCH — BTP config: restricted to BTP_COMMITTEE_HEAD or HOD
 router.patch(
@@ -94,9 +96,9 @@ router.get("/groups/my-groups",getMyGroups);
 router.get("/groups/group-details/:groupId",getGroupDetails);
 router.get("/projects/:projectId",getProjectById);
 router.patch("/projects/:projectId",editProject);
+router.get("/projects/:projectId/get-documents",getDocuments);
 
 /* ============== Faculty's Projects ============ */
-
 router.post("/projects/:projectId/tasks", createTask);
 router.put("/projects/:projectId/tasks/:itemId", editTask);
 router.delete("/projects/:projectId/tasks/:itemId", deleteTask);
@@ -143,6 +145,25 @@ router.get(
   "/reports/pg/:sessionId/projects",
   authorizeFacultyRoles("HOD"),
   generatePGProjectReport
+);
+
+
+/* ============== Department Overview (Committee / HOD) ============ */
+ 
+// UG overview — BTP committee members + HOD
+// GET /faculty/department/ug-students?sessionId=&semester=7|8&page=1&limit=20
+router.get(
+  "/department/ug-students",
+  authorizeFacultyRoles("BTP_COMMITTEE_HEAD", "BTP_COMMITTEE_MEMBER", "HOD"),
+  getUGStudentOverview
+);
+ 
+// PG overview — HOD only
+// GET /faculty/department/pg-students?sessionId=&semester=1|2|3|4&page=1&limit=20
+router.get(
+  "/department/pg-students",
+  authorizeFacultyRoles("HOD"),
+  getPGStudentOverview
 );
 
 

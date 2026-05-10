@@ -8,7 +8,7 @@ import Department from "../../models/DepartmentConfig.js";
 import GroupInvite from "../../models/GroupFormationInvite.js";
 
 
-import { sendNotification } from "../notificationController.js";
+import { notifyUser, notifyGroup } from "../notificationController.js";
 
 /**
  * @desc    Get BTP config for student's department
@@ -164,14 +164,14 @@ export const getGroupsInvite = async (req, res,next) => {
         const groupInvites = await GroupInvite.find({groupId: req.student.groupId})
             .populate({
                 path: "initiator",
-                select: "user specialization",
+                select: "user specialization rollNumber",
                 populate: [
                     {path: "user", select: "name -_id"},
                 ]
             })
             .populate({
                 path: "receiver",
-                select: "user specialization",
+                select: "user specialization rollNumber",
                 populate: [
                     {path: "user", select: "name -_id"},
                 ]
@@ -182,11 +182,13 @@ export const getGroupsInvite = async (req, res,next) => {
                 id: g._id,
                 initiator: {
                     name: g.initiator?.user?.name || "",
-                    department: g.initiator?.specialization || ""
+                    department: g.initiator?.specialization || "",
+                    rollNumber: g.initiator?.rollNumber || ""
                 },
                 receiver: {
                     name: g.receiver?.user?.name || "",
-                    department: g.receiver?.specialization || ""
+                    department: g.receiver?.specialization || "",
+                    rollNumber: g.receiver?.rollNumber || ""
                 },
                 status: g.status,
                 rejectionReason: g.rejectionReason,
@@ -237,14 +239,14 @@ export const getMyInvites = async (req, res,next) => {
         })
             .populate({
                 path: "initiator",
-                select: "user specialization",
+                select: "user specialization rollNumber",
                 populate: [
                     {path: "user", select: "name -_id"},
                 ]
             })
             .populate({
                 path: "receiver",
-                select: "user specialization",
+                select: "user specialization rollNumber",
                 populate: [
                     {path: "user", select: "name -_id"},
                 ]
@@ -255,11 +257,13 @@ export const getMyInvites = async (req, res,next) => {
                 id: g._id,
                 initiator: {
                     name: g.initiator?.user?.name || "",
-                    department: g.initiator?.specialization || ""
+                    department: g.initiator?.specialization || "",
+                    rollNumber: g.initiator?.rollNumber || ""
                 },
                 receiver: {
                     name: g.receiver?.user?.name || "",
-                    department: g.receiver?.specialization || ""
+                    department: g.receiver?.specialization || "",
+                    rollNumber: g.receiver?.rollNumber || ""
                 },
                 status: g.status,
                 rejectionReason: g.rejectionReason,
@@ -313,12 +317,12 @@ export const sendInvite = async (req, res, next) => {
     /* ── 3. Parallel fetch: group + receiver ─────────────────────────────────── */
     // Neither depends on the other — fire together.
     const group = await Group.findById(groupId)
-        .select("departments status")
+        .select("name departments status")
         .lean()
         .session(dbSession);
 
     const receiver = await Student.findOne({ rollNumber: normalizedRollNumber, session: sessionId })
-        .select("_id groupId")
+        .select("_id groupId user")
         .lean()
         .session(dbSession);
 
@@ -406,7 +410,9 @@ export const sendInvite = async (req, res, next) => {
     );
 
     await dbSession.commitTransaction();
-
+    
+    await notifyUser(receiver.user, "student", req.user.id,`You received an invite to join group: ${group.name}. Check details in invitation page.`);
+    await notifyGroup(group._id,req.user.id,`A group invite has been sent from this your group to ${rollNumber}. Check details in invitation page.`);
     return res.status(201).json({
       success: true,
       message: `Invite sent to ${normalizedRollNumber} successfully.`,
@@ -497,12 +503,13 @@ export const respondInvite = async (req, res, next) => {
     if (action === "Reject") {
       await rejectInvite(invite, "Rejected by receiver.", dbSession);
       await dbSession.commitTransaction();
+      await notifyGroup(invite.groupId,req.user.id,`Group invitation was ${invite?.status}. Check details in invite page.`);
       return res.status(200).json({ success: true, message: "Invite rejected." });
     }
 
     /* ── 7. Accept path — fetch group ─────────────────────────────────────── */
     const group = await Group.findById(invite.groupId)
-      .select("departments status")
+      .select("_id departments status")
       .session(dbSession);
 
     if (!group || group.status !== "Draft") {
@@ -545,6 +552,7 @@ export const respondInvite = async (req, res, next) => {
       );
 
       await dbSession.commitTransaction();
+      await notifyGroup(group._id,req.user.id,`Group invitation was ${invite?.status}`);
       await refreshAuthCookie(res,req);
       return res.status(200).json({ success: true, message: "Invite accepted. You have joined the group." });
     }
@@ -574,8 +582,8 @@ export const respondInvite = async (req, res, next) => {
     await Student.updateOne({ _id: responderId }, { $set: { groupId: group._id } }, { session: dbSession });
 
     await Group.updateOne({ _id: group._id }, { $addToSet: { departments: responderDeptId } }, { session: dbSession });
-
     await dbSession.commitTransaction();
+    await notifyGroup(group._id,req.user.id,`Group invitation was ${invite?.status}.`);
     await refreshAuthCookie(res,req);
     return res.status(200).json({ success: true, message: "Invite accepted. You have joined the group." });
 
@@ -777,6 +785,7 @@ export const registerGroup = async (req, res, next) => {
 
     await dbSession.commitTransaction();
     
+    await notifyGroup(group._id,req.user.id,"Your group has been finalized for the BTP process.");
     return res.status(200).json({ success: true, message: "Group registered successfully." });
 
   } catch (error) {

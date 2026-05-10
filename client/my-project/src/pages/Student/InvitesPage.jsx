@@ -136,7 +136,7 @@ const GroupFormationPage = () => {
 
   const handleRegisterInitiation = () => {
     // Check if there are any pending invites
-    const hasPendingInvites = invites.some(inv => inv.status.toLowerCase() !== 'accepted');
+    const hasPendingInvites = invites.some(inv => inv.status.toLowerCase() === 'pending');
     
     if (hasPendingInvites) {
       toast.error("All invites must be 'Accepted' before registration. Withdraw pending invites if needed.", {

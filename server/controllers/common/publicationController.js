@@ -4,6 +4,7 @@ import Publication from "../../models/Publication.js";
 import Project from "../../models/Project.js";
 import Group from "../../models/Group.js";
 import Student from "../../models/Student.js";
+import { notifyGroup } from "../notificationController.js";
 
 /* ===============================================================
    HELPERS
@@ -229,7 +230,7 @@ export const createPublication = async (req, res, next) => {
     }
 
     /* ── 4. Fetch group for authorisation ────────────────────────────────── */
-    const group = await Group.findById(project.group).select("supervisors").lean();
+    const group = await Group.findById(project.group).select("name supervisors").lean();
 
     if (!group) {
       return res.status(404).json({ success: false, message: "Group not found." });
@@ -250,6 +251,7 @@ export const createPublication = async (req, res, next) => {
       title:    title.trim(),
     });
 
+    await notifyGroup(project.group,req.user.id,`A publication record was added for the group: ${group.name}`)
     return res.status(201).json({
       success: true,
       message: "Publication created successfully.",
@@ -319,7 +321,7 @@ export const updatePublication = async (req, res, next) => {
     /* ── Fetch project ───────────────────────────────────────── */
 
     const project = await Project.findById(projectId)
-      .select("group session")
+      .select("title group session")
       .lean();
 
     if (!project) {
@@ -332,7 +334,7 @@ export const updatePublication = async (req, res, next) => {
     /* ── Fetch group + publication ──────────────────────────── */
 
     const [group, publication] = await Promise.all([
-      Group.findById(project.group).select("supervisors").lean(),
+      Group.findById(project.group).select("name supervisors").lean(),
 
       Publication.findOne({
         _id: publicationId,
@@ -484,6 +486,7 @@ export const updatePublication = async (req, res, next) => {
         /* ── Auto status update ───────────────────────────── */
 
         publication.status = "Published";
+        await notifyGroup(group._id,req.user.id,`A published paper doi was added to the ${project.title} record. Check details`);
       } catch (error) {
         return res.status(400).json({
           success: false,
@@ -667,3 +670,6 @@ export const addRemark = async (req, res, next) => {
     next(error);
   }
 };
+
+
+

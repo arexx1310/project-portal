@@ -1,4 +1,4 @@
-import DepartmentConfig from "../../models/DepartmentConfig.js";
+import Department from "../../models/DepartmentConfig.js";
 import Faculty from "../../models/Faculty.js";
 import User from "../../models/User.js";
 
@@ -25,10 +25,10 @@ export const getProfile = async (req, res, next) => {
             data: { 
                 name: userData.name,
                 email: userData.email,
-                phoneNumber: facultyProfile.phoneNumber,
-                staffId: facultyProfile.staffId,
+                phoneNumber: facultyProfile.phoneNumber ?? null,
+                staffId: facultyProfile.staffId ?? null,
                 roles: facultyProfile.roles || [],
-                department: facultyProfile.department.department,
+                department: facultyProfile.department?.department ?? null,
             }
         });
 

@@ -233,7 +233,7 @@ const FacultyWorkManager = ({ projectId }) => {
         fetchData(targetPage);
       }
     } catch (err) {
-      toast.error("Failed to delete task");
+      toast.error(err?.message || "Failed to delete task");
     } finally {
       setTaskToDelete(null);
     }

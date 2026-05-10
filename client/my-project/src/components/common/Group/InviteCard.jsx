@@ -25,6 +25,7 @@ const InviteCard = ({ invite, myInvite, onRespond, onWithdraw }) => {
           <p className="text-xs text-slate-400 uppercase font-medium">From</p>
           <p className="font-bold text-slate-800">{initiator.name}</p>
           <p className="text-sm text-slate-500">{initiator.department}</p>
+          <p className="text-sm text-slate-500">{initiator.rollNumber}</p>
         </div>
         
         <ArrowRight className="text-slate-300" size={20} />
@@ -33,6 +34,7 @@ const InviteCard = ({ invite, myInvite, onRespond, onWithdraw }) => {
           <p className="text-xs text-slate-400 uppercase font-medium">To</p>
           <p className="font-bold text-slate-800">{receiver.name}</p>
           <p className="text-sm text-slate-500">{receiver.department}</p>
+          <p className="text-sm text-slate-500">{receiver.rollNumber}</p>
         </div>
       </div>
 

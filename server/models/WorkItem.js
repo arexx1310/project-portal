@@ -141,19 +141,14 @@ const workItemSchema = new mongoose.Schema(
         return this.type === "Task" ? "Pending" : "Submitted";
       },
     },
+
+    // Set to 3 months after session end — Mongo auto-deletes at this time
+    expiresAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
-);
-
-/* ── indexes ───────────────────────── */
-
-// Unique weekly update per group per session per week
-workItemSchema.index(
-  { group: 1, weekNumber: 1, type: 1 },
-  {
-    unique: true,
-    partialFilterExpression: { type: "WeeklyUpdate" },
-  }
 );
 
 /* ── indexes ───────────────────────── */
@@ -175,5 +170,8 @@ workItemSchema.index({ status: 1, "feedbacks.faculty": 1 });
 
 // Tasks due tracking (for reminders / overdue tasks)
 workItemSchema.index({ dueDate: 1, status: 1 });
+
+// TTL — auto-delete 3 months after session ends (only fires when expiresAt is set)
+workItemSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export default mongoose.model("WorkItem", workItemSchema);

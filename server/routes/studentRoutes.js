@@ -31,12 +31,11 @@ import {
   cancelProjectRequest,
   getMyProjects,
   uploadDocument,
-  getDocuments,
   deleteDocument,
 } from "../controllers/student/projectController1.js";
 
 import { getGroupDetails} from "../controllers/common/groupControllers.js";
-import { editProject, getProjectById } from "../controllers/common/projectController.js";
+import { editProject, getProjectById, getDocuments } from "../controllers/common/projectController.js";
 
 import {
   getProjectRequestDetails,
@@ -78,11 +77,11 @@ router.post("/create-group",createGroup);
 router.get("/group",getGroupDetails);
 router.get("/group/invites",getGroupsInvite);
 router.get("/group/my-invites",getMyInvites);
-router.post("/group/send-invite",sendInvite);
-router.patch("/group/respond-invite/:inviteId",respondInvite);
+router.post("/group/send-invite",requireProgram("UG"),sendInvite);
+router.patch("/group/respond-invite/:inviteId",requireProgram("UG"),respondInvite);
 router.delete("/group/withdraw-invite/:inviteId",withDrawInvite);
 
-router.patch("/group/register",registerGroup);
+router.patch("/group/register",requireProgram("UG"),registerGroup);
 
 /* ============== PROJECT PROPOSALS ============ */
 router.get("/project-proposal/departments",getDepartments);

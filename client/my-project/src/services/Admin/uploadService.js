@@ -32,10 +32,9 @@ const uploadService = {
    * Upload Students Excel File
    * @param {File} file - The .xlsx or .xls file object
    */
-  uploadStudents: async (file, departmentId, specialization, programType) => {
+  uploadStudents: async (file, departmentId, programType) => {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("specialization", specialization);
     formData.append("programType",programType);
 
     const response = await axiosInstance.post(

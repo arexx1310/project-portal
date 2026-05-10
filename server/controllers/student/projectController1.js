@@ -6,7 +6,7 @@ import Student from "../../models/Student.js";
 import Session from "../../models/Session.js";
 import Faculty from "../../models/Faculty.js";
 import Department from "../../models/DepartmentConfig.js";
-import { sendNotification } from "../notificationController.js";
+import { notifyUser, notifyGroup } from "../notificationController.js";
 import { deleteFileFromDrive, getTemporaryViewUrl, resolveUploadFolder, uploadFileToDrive } from "../../config/googledrive.js";
 
 
@@ -184,7 +184,7 @@ export const createProjectRequest = async (req, res, next) => {
 
     // ── 4. Load group ─────────────────────────────────────────────────────────
     const group = await Group.findById(groupId)
-      .select("_id status departments supervisors")
+      .select("_id name status departments supervisors")
       .lean()
       .session(dbSession);
 
@@ -318,16 +318,34 @@ export const createProjectRequest = async (req, res, next) => {
        • supervisors are inherited from group — no body input needed
        • no btpConfig checks
     ════════════════════════════════════════════════════════════════ */
-    } else if (semester === 8) {
 
-      if (group.status !== "Active") {
-        await dbSession.abortTransaction();
-        return res.status(400).json({ success: false, message: "Your group must be in 'Active' status (semester 7 completed) before submitting a semester 8 request." });
-      }
+   } else if (semester === 8) {
+      // ── Resolve supervisors: inherit from group, or fall back to body ────────
+      if (group.supervisors?.length > 0) {
+        resolvedSupervisorIds = group.supervisors;
+      } else {
+        if (!Array.isArray(supervisorIds) || supervisorIds.length === 0) {
+          await dbSession.abortTransaction();
+          return res.status(400).json({ success: false, message: "No supervisors found on this group. Please provide supervisor IDs." });
+        }
 
-      if (!group.supervisors?.length) {
-        await dbSession.abortTransaction();
-        return res.status(400).json({ success: false, message: "No supervisors found on this group." });
+        if (supervisorIds.some((id) => !mongoose.Types.ObjectId.isValid(id))) {
+          await dbSession.abortTransaction();
+          return res.status(400).json({ success: false, message: "One or more supervisor IDs are invalid." });
+        }
+
+        const uniqueSupervisorIds = [...new Set(supervisorIds.map(String))];
+        const facultyRecords = await Faculty.find({ _id: { $in: uniqueSupervisorIds } })
+          .select("_id")
+          .lean()
+          .session(dbSession);
+
+        if (facultyRecords.length !== uniqueSupervisorIds.length) {
+          await dbSession.abortTransaction();
+          return res.status(404).json({ success: false, message: "One or more supervisors were not found." });
+        }
+
+        resolvedSupervisorIds = facultyRecords.map((f) => f._id);
       }
 
       // Check no pending request already exists for sem 8
@@ -342,11 +360,9 @@ export const createProjectRequest = async (req, res, next) => {
         return res.status(400).json({ success: false, message: "A pending project approval request already exists for this group for sem 8." });
       }
 
-      resolvedSupervisorIds = group.supervisors;
-      // 3-month rolling window — reasonable TTL for sem 8 proposals
+      // 3-month rolling window
       expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 3);
-
     } else {
       await dbSession.abortTransaction();
       return res.status(400).json({ success: false, message: "Project approval requests are only allowed in semester 7 or 8." });
@@ -380,30 +396,21 @@ export const createProjectRequest = async (req, res, next) => {
     }
 
     await dbSession.commitTransaction();
+    
+    if (semester === 7) {
+      // Notify each supervisor individually
+      const supervisorUserIds = facultyRecords.map((f) => f.user._id);
+      await supervisorUserIds.map((userId) =>
+          notifyUser(userId, "faculty", req.user.id, `You have received a project proposal from group "${group.name}".`)
+        );
+        
+      // Notify the group students
+      await notifyGroup(group._id, req.user.id, `Your group "${group.name}" has sent a project proposal to supervisor(s). Check details in Project Proposals tab.`);
 
-    // ── 8. Notify supervisors (outside transaction — best-effort) ─────────────
-    // For sem 7 we have the full facultyRecords with populated user.
-    // For sem 8 we only have ObjectIds — notify without user role filter (safeNotify handles it).
-    // const notifyTargets =
-    //   semester === 7
-    //     ? (facultyRecords ?? [])
-    //         .map((f) => f.user)
-    //         .filter(Boolean)
-    //         .map((u) => ({ _id: u._id, role: u.role }))
-    //     : resolvedSupervisorIds.map((id) => ({ _id: id })); // safeNotify resolves by facultyId
-
-    // if (notifyTargets.length > 0) {
-    //   await safeNotify(
-    //     {
-    //       type: "PROJECT_PROPOSAL_SENT",
-    //       message: `A group has requested your supervision for project "${title.trim()}".`,
-    //       refId: approvalRequest._id,
-    //       refModel: "ProjectApprovalRequest",
-    //       triggeredBy: req.user.id,
-    //     },
-    //     notifyTargets
-    //   );
-    // }
+    } else if (semester === 8) {
+      await notifyGroup(group._id, req.user.id, `A project proposal has been created for Semester 8 by your group: "${group.name}".`);
+    }
+   
 
     return res.status(201).json({
       success: true,
@@ -562,42 +569,12 @@ export const uploadDocument = async (req, res, next) => {
       { new: true, select: "documents" }
     );
 
+    await notifyGroup(project.group,req.user.id,`Document - ${label} submitted for the project ${project.title}`);
+
     return res.status(200).json({
       success: true,
       message: "Document uploaded successfully.",
       data: updated.documents.at(-1), // return the newly added entry
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const getDocuments = async (req, res, next) => {
-  try {
-    const { projectId } = req.params;
-
-    const project = await Project.findById(projectId)
-      .select("documents group")
-      .lean();
-
-    if (!project) {
-      return res.status(404).json({ success: false, message: "Project not found." });
-    }
-
-    if (!req.student.groupId || project.group.toString() !== req.student.groupId.toString()) {
-      return res.status(403).json({ success: false, message: "You do not have access to this project." });
-    }
-
-    const data = project.documents.map((d) => ({
-      _id: d._id,
-      label: d.label,
-      url: d.url,
-      fileId: d.fileId,  
-    }));
-
-    return res.status(200).json({
-      success: true,
-      data: data || []
     });
   } catch (err) {
     next(err);

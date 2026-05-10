@@ -103,13 +103,6 @@ const departmentConfigSchema = new mongoose.Schema(
       index: true,
     },
 
-    specializations: [
-      {
-        type: String,
-        trim: true,
-      },
-    ],
-
     btpConfig: {
       type: btpConfigSchema,
       required: true,

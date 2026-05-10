@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Plus, Trash2, FileText, ExternalLink, X, Lock, AlertTriangle
 } from "lucide-react";
+
 import projectServices from "../../services/Student/projectServices";
+import facultyProjectService from "../../services/Faculty/projectServices";
 import Loader from "../../components/ui/Loader";
 import toast from "react-hot-toast";
 
@@ -29,7 +31,8 @@ const Documents = ({ projectId, isStudent = true }) => {
   const fetchDocs = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await projectServices.getDocuments(projectId);
+
+      const res = isStudent ? await projectServices.getDocuments(projectId) : await facultyProjectService.getDocuments(projectId);
       setDocuments(res.data ?? []);
     } catch (err) {
       toast.error(err?.message || "Failed to fetch documents");

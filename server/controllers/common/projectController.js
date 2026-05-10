@@ -197,6 +197,56 @@ export const editProject = async (req, res, next) => {
 
 
 
+export const getDocuments = async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+    if (
+          !mongoose.Types.ObjectId.isValid(projectId) 
+      ) {
+          return res.status(400).json({ success: false, message: "Invalid ID(s)." });
+    }
+
+    const caller = resolveCallerContext(req);
+        if (!caller) {
+          return res.status(401).json({ success: false, message: "Unauthorized." });
+    }
+
+    const project = await Project.findById(projectId)
+      .select("documents group")
+      .lean();
+
+    if (!project) {
+      return res.status(404).json({ success: false, message: "Project not found." });
+    }
+
+    const group = await Group.findById(project.group).select("supervisors").lean();
+
+    if (!group) {
+      return res.status(404).json({ success: false, message: "Group not found." });
+    }
+    if (!isAuthorisedForGroup(caller, group)) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You are not a member or supervisor of this group.",
+      });
+    }
+
+    const data = project.documents.map((d) => ({
+      _id: d._id,
+      label: d.label,
+      url: d.url,
+      fileId: d.fileId,  
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: data || []
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 
 

@@ -1,8 +1,6 @@
 import Faculty from "../../models/Faculty.js";
 import User from "../../models/User.js";
 import mongoose from "mongoose";
-import { NotificationEvent, UserNotification } from "../../models/Notifications.js";
-import { sendNotification } from "../notificationController.js";
 
 
 /**
@@ -182,33 +180,6 @@ export const updateFaculty = async (req, res, next) => {
       await session.abortTransaction();
       session.endSession();
       return res.status(404).json({ success: false, message: "Faculty not found" });
-    }
-
-    // Send notification only if roles were actually changed
-    if (roles !== undefined && faculty.user) {
-      const assignedRoles = updateData.roles || [];
-      const message =
-        assignedRoles.length === 0
-          ? `Your special roles have been removed in the ${faculty.department.department} department.`
-          : `You have been assigned the following role(s) in ${faculty.department.department}: ${assignedRoles.map(r => roleLabels[r]).join(", ")}.`;
-
-      // Create recipients array properly
-      const recipients = [{
-        _id: faculty.user._id,
-        role: faculty.user.role
-      }];
-
-      await sendNotification(
-        {
-          type: "ROLE_ASSIGNED",
-          message,
-          refId: faculty._id,
-          refModel: "Faculty",
-          triggeredBy: req.user?.id 
-        },
-        recipients,
-        session // Pass the session for transaction
-      );
     }
 
     await session.commitTransaction();

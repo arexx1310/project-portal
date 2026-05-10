@@ -22,19 +22,18 @@ import ManageStudentPage from "./pages/Admin/ManageStudentPage";
 // Faculty pages
 import FacultyDashboard from "./pages/Faculty/DashboardPage";
 import FacultyProfilePage from "./pages/Faculty/ProfilePage";
-import ChangePasswordFaculty from "./pages/Faculty/Security";
 import DeptConfigPage from "./pages/Faculty/DeptConfigPage";
 import MyGroupsPage from "./pages/Faculty/MyGroupsPage";
 import GroupDetailsPage from "./pages/Faculty/GroupDetailsPage";
 import SupervisionRequestsPage from "./pages/Faculty/SupervisionRequestPage";
 import StudentsManagementPage from "./pages/Faculty/ReportPage";
 
+import DepartmentOverview from "./pages/Faculty/DepartmentOveview";
+
 // Student pages
 // ====================== UG (BTECH) ======================= 
 import StudentDashboard from "./pages/Student/DashboardPage";
 import StudentProfilePage from "./pages/Student/ProfilePage";
-import ChangePasswordStudent from "./pages/Student/Security";
-
 import ProjectsPage from "./pages/Student/ProjectPage";
 import GroupFormationPage from "./pages/Student/InvitesPage";
 import MyProposals from "./pages/Student/ProposalList";
@@ -102,14 +101,14 @@ const App = () => {
           <Route element={<AppLayout />}>
             <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
             <Route path="/faculty/profile" element={<FacultyProfilePage />} />
-            <Route path="/faculty/change-password" element={<ChangePasswordFaculty/>}/>
             <Route path="/faculty/config" element={<DeptConfigPage/>} />
+            <Route path="/faculty/department-overview" element={<DepartmentOverview/>}/>
+            <Route path="/faculty/student-management" element={<StudentsManagementPage />} />
             <Route path="/faculty/project-proposals/ug" element={<SupervisionRequestsPage />}/>
             <Route path="/faculty/project-proposals/pg" element={<SupervisionRequestsPage isPG={true}/>}/>
             <Route path="/faculty/my-groups" element={<MyGroupsPage/>}/>
             <Route path="/faculty/pg/students" element={<MyGroupsPage isPG={true}/>}/>
             <Route path="/faculty/my-groups/:groupId" element={<GroupDetailsPage/>}/>
-            <Route path="/faculty/btp/student-management" element={<StudentsManagementPage />} />
           </Route>
         </Route>
 
@@ -118,7 +117,6 @@ const App = () => {
           <Route element={<AppLayout />}>
             <Route path="/student/dashboard" element={<StudentDashboard />} />
             <Route path="/student/profile" element={<StudentProfilePage />} />
-            <Route path="/student/change-password" element={<ChangePasswordStudent/>}/>
             <Route path="/student/group-formation" element={<GroupFormationPage/>}/>
             <Route path="/student/project-proposals" element={<MyProposals/>}/>
             <Route path="/student/create-proposal" element={<CreateProposal/>}/>

@@ -6,6 +6,11 @@ const notificationService = {
     const res = await axiosInstance.get(API_PATHS.FACULTY.GET_NOTIFICATIONS);
     return res.data;
   },
+
+  sendNotification: async (payload) => {
+    const res = await axiosInstance.post(API_PATHS.FACULTY.SEND_NOTIFICATION, payload);
+    return res.data;
+  },
 };
 
 export default notificationService;

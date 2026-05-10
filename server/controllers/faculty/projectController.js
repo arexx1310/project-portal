@@ -6,7 +6,7 @@ import Student from "../../models/Student.js";
 import Project from "../../models/Project.js";
 import Session from "../../models/Session.js";
 import Department from "../../models/DepartmentConfig.js";
-import { sendNotification } from "../notificationController.js";
+import { notifyGroup, sendNotification } from "../notificationController.js";
 
 // ── helper to avoid crashing after commit ────────────────────────────────
 const safeNotify = async (payload, recipients) => {
@@ -71,18 +71,6 @@ export const respondToRequest = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "You have already responded to this request." });
     }
 
-    // ── Group members for notifications ───────────────────────────────────────
-    const groupStudents = await Student.find({ groupId: request.group })
-      .select("user")
-      .populate("user", "_id role")
-      .lean()
-      .session(dbSession);
-
-    const groupMemberRecipients = groupStudents
-      .map((s) => s.user)
-      .filter(Boolean)
-      .map((u) => ({ _id: u._id, role: u.role }));
-
     // ══════════════════════════════════════════════════════════════════════════
     // REJECTION
     // ══════════════════════════════════════════════════════════════════════════
@@ -95,13 +83,7 @@ export const respondToRequest = async (req, res, next) => {
       await request.save({ session: dbSession });
       await dbSession.commitTransaction();
 
-      await safeNotify({
-        type:        "PROJECT_PROPOSAL_REJECTED",
-        message:     `Your project proposal for Semester ${request.project.semester} was rejected by a supervisor. You may resubmit.`,
-        refId:       request._id,
-        refModel:    "ProjectApprovalRequest",
-        triggeredBy: req.user.id,
-      }, groupMemberRecipients);
+      await notifyGroup(request.group,req.user.id,"Supervisor has rejected the project proposal request for your group.")
 
       return res.status(200).json({ success: true, message: "Project approval request rejected." });
     }
@@ -111,7 +93,7 @@ export const respondToRequest = async (req, res, next) => {
     // ══════════════════════════════════════════════════════════════════════════
     const { semester } = request.project;
 
-    if (semester === 7) {
+    if (semester === 7 ) {
 
       // ── Guard 1: group must not already have supervisors ──────────────────
       const group = await Group.findById(request.group)
@@ -174,14 +156,7 @@ export const respondToRequest = async (req, res, next) => {
 
       await dbSession.commitTransaction();
 
-      await safeNotify({
-        type:        "PROJECT_PROPOSAL_ACCEPTED",
-        message:     `A supervisor accepted your project proposal for Semester ${semester}. Waiting for ${remaining} more supervisor(s).`,
-        refId:       request._id,
-        refModel:    "ProjectApprovalRequest",
-        triggeredBy: req.user.id,
-      }, groupMemberRecipients);
-
+      await notifyGroup(request.group,req.user.id,`Supervisor accepted the project proposal for Semester ${semester}. Waiting for ${remaining} more supervisor(s).`);
       return res.status(200).json({ success: true, message: `You accepted. Waiting for ${remaining} more supervisor(s) to respond.` });
     }
 
@@ -209,25 +184,19 @@ export const respondToRequest = async (req, res, next) => {
     request.finalProject = newProject._id;
     await request.save({ session: dbSession });
 
-    if (semester === 7) {
-      const supervisorIds = request.supervisorInvites.map((s) => s.faculty);
+    
+    const supervisorIds = request.supervisorInvites.map((s) => s.faculty);
       await Group.findByIdAndUpdate(
         request.group,
         { $set: { status: "Active" }, $addToSet: { supervisors: { $each: supervisorIds } } },
         { session: dbSession }
       );
-    }
+     
+
+    
 
     await dbSession.commitTransaction();
-
-    await safeNotify({
-      type:        "PROJECT_PROPOSAL_ACCEPTED",
-      message:     `All supervisors accepted your project proposal "${request.project.title}" for Semester ${semester}. Your project is now active!`,
-      refId:       newProject._id,
-      refModel:    "Project",
-      triggeredBy: req.user.id,
-    }, groupMemberRecipients);
-
+    await notifyGroup(request.group,req.user.id,`All supervisors accepted the project proposal "${request.project.title}" for Semester ${semester}. The project is now active!`);
     return res.status(200).json({
       success: true,
       message: semester === 7
@@ -297,18 +266,6 @@ export const respondToMtpRequest = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "You have already responded to this request." });
     }
 
-    // ── Group members for notifications ───────────────────────────────────────
-    const groupStudents = await Student.find({ groupId: request.group })
-      .select("user")
-      .populate("user", "_id role")
-      .lean()
-      .session(dbSession);
-
-    const groupMemberRecipients = groupStudents
-      .map((s) => s.user)
-      .filter(Boolean)
-      .map((u) => ({ _id: u._id, role: u.role }));
-
     // ══════════════════════════════════════════════════════════════════════════
     // REJECTION
     // ══════════════════════════════════════════════════════════════════════════
@@ -321,14 +278,7 @@ export const respondToMtpRequest = async (req, res, next) => {
       await request.save({ session: dbSession });
       await dbSession.commitTransaction();
 
-      await safeNotify({
-        type:        "PROJECT_PROPOSAL_REJECTED",
-        message:     `Your M.Tech project proposal for Semester ${request.project.semester} was rejected by a supervisor. You may resubmit.`,
-        refId:       request._id,
-        refModel:    "ProjectApprovalRequest",
-        triggeredBy: req.user.id,
-      }, groupMemberRecipients);
-
+      await notifyGroup(request.group,req.user.id,"Supervisor has rejected the project proposal.");
       return res.status(200).json({ success: true, message: "MTP project approval request rejected." });
     }
 
@@ -408,14 +358,7 @@ export const respondToMtpRequest = async (req, res, next) => {
 
       await dbSession.commitTransaction();
 
-      await safeNotify({
-        type:        "PROJECT_PROPOSAL_ACCEPTED",
-        message:     `A supervisor accepted your M.Tech project proposal for Semester ${semester}. Waiting for ${remaining} more supervisor(s).`,
-        refId:       request._id,
-        refModel:    "ProjectApprovalRequest",
-        triggeredBy: req.user.id,
-      }, groupMemberRecipients);
-
+      await notifyGroup(request.group,req.user.id,`A supervisor accepted your M.Tech project proposal for Semester ${semester}. Waiting for ${remaining} more supervisor(s).`);
       return res.status(200).json({ success: true, message: `You accepted. Waiting for ${remaining} more supervisor(s) to respond.` });
     }
 
@@ -446,25 +389,18 @@ export const respondToMtpRequest = async (req, res, next) => {
     // ── Odd semesters: assign supervisors + activate group ────────────────────
     // Even semesters already have supervisors on the group from the prior odd
     // semester — no need to write them again.
-    if (isOddSemester) {
-      const supervisorIds = request.supervisorInvites.map((s) => s.faculty);
+    
+    const supervisorIds = request.supervisorInvites.map((s) => s.faculty);
       await Group.findByIdAndUpdate(
         request.group,
         { $set: { status: "Active" }, $addToSet: { supervisors: { $each: supervisorIds } } },
         { session: dbSession }
       );
-    }
+  
 
     await dbSession.commitTransaction();
 
-    await safeNotify({
-      type:        "PROJECT_PROPOSAL_ACCEPTED",
-      message:     `All supervisors accepted your MTP project proposal "${request.project.title}" for Semester ${semester}. Your project is now active!`,
-      refId:       newProject._id,
-      refModel:    "Project",
-      triggeredBy: req.user.id,
-    }, groupMemberRecipients);
-
+    await notifyGroup(request.group,req.user.id,`All supervisors accepted your M.Tech project proposal "${request.project.title}" for Semester ${semester}. The project is now active!`);
     return res.status(200).json({
       success: true,
       message: isOddSemester

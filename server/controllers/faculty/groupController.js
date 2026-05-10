@@ -85,7 +85,7 @@ export const getMyGroups = async (req, res, next) => {
     // ── 3. Batch fetch all students across all groups in one query ─────────────
     const groupIds   = groups.map((g) => g._id);
     const allStudents = await Student.find({ groupId: { $in: groupIds } })
-      .select("groupId specialization user")
+      .select("groupId user")
       .populate("user", "name email -_id")
       .lean();
 
@@ -95,7 +95,6 @@ export const getMyGroups = async (req, res, next) => {
       (acc[key] ??= []).push({
         name:           s.user?.name           ?? null,
         email:          s.user?.email          ?? null,
-        specialization: s.specialization       ?? null,
       });
       return acc;
     }, {});
