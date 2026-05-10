@@ -4,6 +4,7 @@ import { Check, X, Undo2, ArrowRight } from 'lucide-react';
 const InviteCard = ({ invite, myInvite, onRespond, onWithdraw }) => {
   const { id, initiator, receiver, status, rejectionReason } = invite;
 
+  console.log(initiator.department);
   const statusStyles = {
     pending: "bg-amber-100 text-amber-700 border-amber-200",
     accepted: "bg-emerald-100 text-emerald-700 border-emerald-200",

@@ -164,14 +164,14 @@ export const getGroupsInvite = async (req, res,next) => {
         const groupInvites = await GroupInvite.find({groupId: req.student.groupId})
             .populate({
                 path: "initiator",
-                select: "user specialization rollNumber",
+                select: "user rollNumber",
                 populate: [
                     {path: "user", select: "name -_id"},
                 ]
             })
             .populate({
                 path: "receiver",
-                select: "user specialization rollNumber",
+                select: "user rollNumber",
                 populate: [
                     {path: "user", select: "name -_id"},
                 ]
@@ -182,12 +182,10 @@ export const getGroupsInvite = async (req, res,next) => {
                 id: g._id,
                 initiator: {
                     name: g.initiator?.user?.name || "",
-                    department: g.initiator?.specialization || "",
                     rollNumber: g.initiator?.rollNumber || ""
                 },
                 receiver: {
                     name: g.receiver?.user?.name || "",
-                    department: g.receiver?.specialization || "",
                     rollNumber: g.receiver?.rollNumber || ""
                 },
                 status: g.status,
@@ -239,14 +237,14 @@ export const getMyInvites = async (req, res,next) => {
         })
             .populate({
                 path: "initiator",
-                select: "user specialization rollNumber",
+                select: "user rollNumber",
                 populate: [
                     {path: "user", select: "name -_id"},
                 ]
             })
             .populate({
                 path: "receiver",
-                select: "user specialization rollNumber",
+                select: "user rollNumber",
                 populate: [
                     {path: "user", select: "name -_id"},
                 ]
@@ -257,12 +255,10 @@ export const getMyInvites = async (req, res,next) => {
                 id: g._id,
                 initiator: {
                     name: g.initiator?.user?.name || "",
-                    department: g.initiator?.specialization || "",
                     rollNumber: g.initiator?.rollNumber || ""
                 },
                 receiver: {
                     name: g.receiver?.user?.name || "",
-                    department: g.receiver?.specialization || "",
                     rollNumber: g.receiver?.rollNumber || ""
                 },
                 status: g.status,
@@ -412,7 +408,7 @@ export const sendInvite = async (req, res, next) => {
     await dbSession.commitTransaction();
     
     await notifyUser(receiver.user, "student", req.user.id,`You received an invite to join group: ${group.name}. Check details in invitation page.`);
-    await notifyGroup(group._id,req.user.id,`A group invite has been sent from this your group to ${rollNumber}. Check details in invitation page.`);
+    await notifyGroup(group._id,req.user.id,`A group invite has been sent from your group to ${rollNumber}. Check details in invitation page.`);
     return res.status(201).json({
       success: true,
       message: `Invite sent to ${normalizedRollNumber} successfully.`,
