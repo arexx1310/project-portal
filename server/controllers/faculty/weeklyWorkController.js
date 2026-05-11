@@ -3,7 +3,7 @@ import WorkItem from "../../models/WorkItem.js";
 import Project from "../../models/Project.js";
 import Group from "../../models/Group.js";
 import User from "../../models/User.js";
-
+import {notifyGroup} from "../notificationController.js";
 // Weekly Work controller faculty
 /* ─────────────────────────────────────────────────────
    HELPER

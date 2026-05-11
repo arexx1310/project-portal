@@ -230,7 +230,7 @@ export const createProjectRequest = async (req, res, next) => {
 
       if (pendingExists) {
         await dbSession.abortTransaction();
-        return res.status(400).json({ success: false, message: "A pending project approval request already exists for this group." });
+        return res.status(400).json({ success: false, message: "A pending project approval request already exists for this group. Withdraw to send a new one" });
       }
 
       const uniqueSupervisorIds = [...new Set(supervisorIds.map(String))];
