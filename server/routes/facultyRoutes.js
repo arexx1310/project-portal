@@ -154,7 +154,7 @@ router.get(
 // GET /faculty/department/ug-students?sessionId=&semester=7|8&page=1&limit=20
 router.get(
   "/department/ug-students",
-  authorizeFacultyRoles("BTP_COMMITTEE_HEAD", "BTP_COMMITTEE_MEMBER", "HOD"),
+  authorizeFacultyRoles("PROJECT_COMMITTEE_HEAD", "PROJECT_COMMITTEE_MEMBER", "HOD"),
   getUGStudentOverview
 );
  

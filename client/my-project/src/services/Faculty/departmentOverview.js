@@ -28,7 +28,7 @@ const departmentOverviewService = {
    *   pagination: { total: number, page: number, limit: number, totalPages: number }
    * }>}
    */
-  getUGStudents: async (sessionId, { semester, page = 1, limit = 20 } = {}) => {
+  getUGStudents: async (sessionId, { semester, page = 1, limit = 50 } = {}) => {
     const params = { sessionId, page, limit };
     if (semester !== undefined) params.semester = semester;
 
@@ -64,7 +64,7 @@ const departmentOverviewService = {
    *   pagination: { total: number, page: number, limit: number, totalPages: number }
    * }>}
    */
-  getPGStudents: async (sessionId, { semester, page = 1, limit = 20 } = {}) => {
+  getPGStudents: async (sessionId, { semester, page = 1, limit = 40 } = {}) => {
     const params = { sessionId, page, limit };
     if (semester !== undefined) params.semester = semester;
 

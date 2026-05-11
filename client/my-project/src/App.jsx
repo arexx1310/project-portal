@@ -30,7 +30,7 @@ import GroupDetailsPage from "./pages/Faculty/GroupDetailsPage";
 import SupervisionRequestsPage from "./pages/Faculty/SupervisionRequestPage";
 import StudentsManagementPage from "./pages/Faculty/ReportPage";
 
-import DepartmentOverview from "./pages/Faculty/DepartmentOveview";
+import DepartmentHub from "./pages/Faculty/DepartmentOveview";
 
 // Student pages
 // ====================== UG (BTECH) ======================= 
@@ -106,7 +106,7 @@ const App = () => {
             <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
             <Route path="/faculty/profile" element={<FacultyProfilePage />} />
             <Route path="/faculty/config" element={<DeptConfigPage/>} />
-            <Route path="/faculty/department-overview" element={<DepartmentOverview/>}/>
+            <Route path="/faculty/department-overview" element={<DepartmentHub/>}/>
             <Route path="/faculty/student-management" element={<StudentsManagementPage />} />
             <Route path="/faculty/project-proposals/ug" element={<SupervisionRequestsPage />}/>
             <Route path="/faculty/project-proposals/pg" element={<SupervisionRequestsPage isPG={true}/>}/>

@@ -84,8 +84,8 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
             },
 
             hasFacultyRole([
-              "BTP_COMMITTEE_HEAD",
-              "BTP_COMMITTEE_MEMBER",
+              "PROJECT_COMMITTEE_HEAD",
+              "PROJECT_COMMITTEE_MEMBER",
               "HOD",
             ]) && {
               to: "/faculty/department-overview",
@@ -94,8 +94,8 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
             },
 
             hasFacultyRole([
-              "BTP_COMMITTEE_HEAD",
-              "BTP_COMMITTEE_MEMBER",
+              "PROJECT_COMMITTEE_HEAD",
+              "PROJECT_COMMITTEE_MEMBER",
               "HOD",
             ]) && {
               to: "/faculty/student-management",

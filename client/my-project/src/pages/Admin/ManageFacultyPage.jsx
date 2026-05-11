@@ -11,7 +11,7 @@ import departmentService from "../../services/Admin/departmentServices";
 import Header from "../../components/ui/Header";
 import ConfirmModal from "../../components/common/ConfirmModal";
 
-const AVAILABLE_ROLES = ["HOD", "BTP_COMMITTEE_HEAD", "BTP_COMMITTEE_MEMBER"];
+const AVAILABLE_ROLES = ["HOD", "PROJECT_COMMITTEE_HEAD", "PROJECT_COMMITTEE_MEMBER"];
 
 const ManageFacultyPage = () => {
   const [facultyList, setFacultyList] = useState([]);

@@ -31,7 +31,7 @@ const MyGroupsPage = ({isPG=false}) => {
         await myGroupsService.getAllGroups(sessionId);
 
       if (response.success) {
-        toast.success("Group Fetched");
+        
         setGroups(response.data);
       }
     } catch (error) {

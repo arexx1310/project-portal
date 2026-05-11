@@ -10,7 +10,7 @@ import Publication from "../../models/Publication.js";
  * Returns a paginated list of UG students in the faculty's department
  * for a given session (and optionally a semester filter).
  *
- * Access: BTP_COMMITTEE_HEAD | BTP_COMMITTEE_MEMBER | HOD
+ * Access: PROJECT_COMMITTEE_HEAD | PROJECT_COMMITTEE_MEMBER | HOD
  *
  * Each row:
  *   sNo, studentName, rollNumber, groupName,
@@ -23,7 +23,7 @@ export const getUGStudentOverview = async (req, res) => {
 
     const { sessionId, semester } = req.query;
     const page  = Math.max(1, parseInt(req.query.page)  || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 40));
     const skip  = (page - 1) * limit;
 
     /* ── validate required params ── */
@@ -184,7 +184,7 @@ export const getPGStudentOverview = async (req, res) => {
 
     const { sessionId, semester } = req.query;
     const page  = Math.max(1, parseInt(req.query.page)  || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 40));
     const skip  = (page - 1) * limit;
 
     /* ── validate required params ── */
