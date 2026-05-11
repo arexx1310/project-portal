@@ -35,7 +35,7 @@ const facultySchema = new mongoose.Schema({
 
   roles: { 
     type: [String], 
-    enum: ["HOD", "BTP_COMMITTEE_HEAD", "BTP_COMMITTEE_MEMBER"], 
+    enum: ["HOD", "PROJECT_COMMITTEE_HEAD", "PROJECT_COMMITTEE_MEMBER"], 
     default: [] 
   },
 }, { timestamps: true });

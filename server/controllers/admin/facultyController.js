@@ -147,11 +147,11 @@ export const updateFaculty = async (req, res, next) => {
     }
 
     const updateData = {};
-    const VALID_ROLES = ["HOD", "BTP_COMMITTEE_HEAD", "BTP_COMMITTEE_MEMBER"];
+    const VALID_ROLES = ["HOD", "PROJECT_COMMITTEE_HEAD", "PROJECT_COMMITTEE_MEMBER"];
     const roleLabels = {
       HOD: "Head of Department",
-      BTP_COMMITTEE_HEAD: "BTP Committee Head",
-      BTP_COMMITTEE_MEMBER: "BTP Committee Member",
+      PROJECT_COMMITTEE_HEAD: "Project Committee Head",
+      PROJECT_COMMITTEE_MEMBER: "Project Committee Member",
     };
 
     if (roles !== undefined) {

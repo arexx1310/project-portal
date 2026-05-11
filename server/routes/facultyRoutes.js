@@ -65,14 +65,14 @@ router.post("/notifications", sendNotification);
 // PATCH — BTP config: restricted to BTP_COMMITTEE_HEAD or HOD
 router.patch(
   "/config/:departmentId/btp",
-  authorizeFacultyRoles("BTP_COMMITTEE_HEAD", "HOD"),
+  authorizeFacultyRoles("PROJECT_COMMITTEE_HEAD", "HOD"),
   updateBTPConfig
 );
  
 // PATCH — MTP config: restricted to HOD only (PG-level programme)
 router.patch(
   "/config/:departmentId/mtp",
-  authorizeFacultyRoles("HOD"),
+  authorizeFacultyRoles("PROJECT_COMMITTEE_HEAD", "HOD"),
   updateMTPConfig
 );
 
@@ -122,28 +122,28 @@ router.post("/projects/:projectId/publications/:publicationId/remarks",  addRema
 // UG Controller 1 — Status (students not in group, draft groups, groups with no supervisor)
 router.get(
   "/reports/ug/:sessionId/status",
-  authorizeFacultyRoles("BTP_COMMITTEE_HEAD", "BTP_COMMITTEE_MEMBER", "HOD"),
+  authorizeFacultyRoles("PROJECT_COMMITTEE_HEAD", "PROJECT_COMMITTEE_MEMBER", "HOD"),
   generateUGStatusReport
 );
 
 // UG Controller 2 — Projects + Publications (requires ?semester=7|8)
 router.get(
   "/reports/ug/:sessionId/projects",
-  authorizeFacultyRoles("BTP_COMMITTEE_HEAD", "BTP_COMMITTEE_MEMBER", "HOD"),
+  authorizeFacultyRoles("PROJECT_COMMITTEE_HEAD", "PROJECT_COMMITTEE_MEMBER", "HOD"),
   generateUGProjectReport
 );
 
 // PG Controller 1 — Status (students not registered, students with no supervisor)
 router.get(
   "/reports/pg/:sessionId/status",
-  authorizeFacultyRoles("HOD"),
+  authorizeFacultyRoles("PROJECT_COMMITTEE_HEAD", "PROJECT_COMMITTEE_MEMBER", "HOD"),
   generatePGStatusReport
 );
 
 // PG Controller 2 — Projects + Publications (requires ?semester=1|2|3|4)
 router.get(
   "/reports/pg/:sessionId/projects",
-  authorizeFacultyRoles("HOD"),
+  authorizeFacultyRoles("PROJECT_COMMITTEE_HEAD", "PROJECT_COMMITTEE_MEMBER", "HOD"),
   generatePGProjectReport
 );
 
