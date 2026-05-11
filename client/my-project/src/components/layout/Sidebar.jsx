@@ -21,6 +21,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [openDropdown, setOpenDropdown] = useState(null);
+  
 
   const toggleDropdown = (label) => {
     setOpenDropdown(openDropdown === label ? null : label);
@@ -144,7 +145,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
         icon: FileText,
         isDropdown: true,
         subLinks: [
-          { to: "/student/group-formation", icon: Users, text: "Group Invites"},
+          !user?.isPG && { to: "/student/group-formation", icon: Users, text: "Group Invites"},
           { to: "/student/project-proposals", icon: ListChecks, text: "Project Proposal" },
           { to: "/student/btp/projects", icon: GraduationCap, text: "My Projects" }
         ].filter(Boolean)

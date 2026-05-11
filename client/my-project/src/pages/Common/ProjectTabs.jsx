@@ -58,7 +58,7 @@ const ProjectTabs = ({ projectId }) => {
                   text-[9px] md:text-[10px] font-black uppercase tracking-widest whitespace-nowrap
                   transition-all duration-300
                   ${isActive 
-                    ? "bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200/50" 
+                    ? "bg-white text-zinc-700 shadow-sm ring-1 ring-slate-200/50" 
                     : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
                   }
                 `}

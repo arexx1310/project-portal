@@ -56,7 +56,7 @@ const ProjectsPage = () => {
             <Loader fullScreen={false} />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
             {projects.length > 0 ? (
               projects.map((project) => {
                 const isSelected = selectedProjectId === project._id;
@@ -67,26 +67,26 @@ const ProjectsPage = () => {
                     onClick={() => setSelectedProjectId(project._id)}
                     className={`w-full text-left bg-white border rounded-[1.5rem] p-5 shadow-sm transition-all relative overflow-hidden group
                       ${isSelected 
-                        ? 'border-indigo-500 ring-4 ring-indigo-500/5' 
+                        ? 'border-blue-500 ring-4 ring-indigo-500/5' 
                         : 'border-slate-200 hover:border-slate-300'
                       }`}
                   >
                     <div className="flex justify-between items-center mb-3">
                       <div className={`flex items-center gap-2 px-3 py-1 rounded-full border transition-colors
-                        ${isSelected ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
+                        ${isSelected ? 'bg-indigo-50 border-indigo-200 text-blue-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
                         <Calendar size={10} strokeWidth={3} />
                         <span className="text-[9px] font-black uppercase tracking-widest">
                           Sem {project.semester || 'N/A'}
                         </span>
                       </div>
-                      {isSelected && <Sparkles size={14} className="text-indigo-500 animate-pulse" />}
+                      {isSelected && <Sparkles size={14} className="text-blue-400 animate-pulse" />}
                     </div>
                     
                     <div className="flex items-center justify-between gap-4">
-                      <h3 className={`text-sm font-black truncate transition-colors ${isSelected ? 'text-indigo-600' : 'text-slate-800'}`}>
+                      <h3 className={`text-sm font-black transition-colors ${isSelected ? 'text-blue-400' : 'text-slate-800'}`}>
                         {project.title}
                       </h3>
-                      <div className={`p-2 rounded-xl transition-all ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-300 group-hover:bg-slate-100 group-hover:text-slate-500'}`}>
+                      <div className={`p-2 rounded-xl transition-all ${isSelected ? 'bg-blue-400 text-white' : 'bg-slate-50 text-slate-300 group-hover:bg-slate-100 group-hover:text-slate-500'}`}>
                         <ArrowRight size={14} />
                       </div>
                     </div>

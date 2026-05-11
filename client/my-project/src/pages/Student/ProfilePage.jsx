@@ -15,6 +15,7 @@ import {
 import Header from "../../components/ui/Header";
 import Loader from "../../components/ui/Loader";
 import GroupDetails from "../../components/common/Group/GroupDetails";
+import ConfirmModal from "../../components/common/ConfirmModal";
 
 const StudentProfilePage = () => {
   const [loading, setLoading] = useState(true);
@@ -31,15 +32,14 @@ const StudentProfilePage = () => {
     confirmPassword: ""
   });
 
+  const [isConfirmModalOpen,setIsConfirmModalOpen] = useState(false);
+  const [isRegistering,setIsRegistering] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchProfile();
   }, []);
-
-  const groupStatus = group?.status?.toLowerCase();
-  const hasGroup = !!profile?.groupId;
-  const isRegistered = hasGroup && groupStatus === "active";
 
   const fetchProfile = async () => {
     try {
@@ -50,11 +50,8 @@ const StudentProfilePage = () => {
         setProfile(profileData);
         if (profileData?.programType === "PG") setisPGStudent(true);
 
-        console.log(profileData?.groupId);
         if (profileData?.groupId) {
-          
           const groupRes = await groupService.getGroupDetails();
-          console.log(groupRes);
           if (groupRes.success) setGroup(groupRes.data);
         }
       }
@@ -82,11 +79,31 @@ const StudentProfilePage = () => {
         setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" });
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "Update failed");
+      toast.error(error?.message || "Update failed");
     } finally {
       setActionLoading(false);
     }
   };
+
+  const handleRegisterPG = async () => {
+    if (!profile.name) return;
+    try {
+      const res = await groupService.createGroup(profile?.name) // uses PG student's name for registering 
+      if (res.success) {
+          fetchProfile();
+      }
+    } catch (error) {
+      toast.error(error?.message || "Registration Failed");
+    } finally {
+      setIsRegistering(false);
+      setIsConfirmModalOpen(false);
+    }
+  }
+
+  const groupStatus = group?.status?.toLowerCase();
+  const hasGroup = !!profile?.groupId;
+  const isRegistered = hasGroup && (groupStatus === "formed");
+  const hasSups = hasGroup && (groupStatus === "active");
 
   const copyToClipboard = (text) => {
     if (!text) return;
@@ -114,19 +131,38 @@ const StudentProfilePage = () => {
               {/* Action Button (Only visible in Overview) */}
               {activeTab === "overview" && (
                 <div className="absolute top-6 right-6 md:top-10 md:right-10 z-20">
-                   {!isPGStudent ? (
-                     (!hasGroup || groupStatus === "draft") && (
-                       <button onClick={() => navigate("/student/group-formation")} className="px-8 py-3 bg-slate-900 hover:bg-black text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all flex items-center gap-2 active:scale-95">
-                         Form Group <ExternalLink size={14} />
-                       </button>
-                     )
-                   ) : (
-                     !hasGroup && (
-                       <button onClick={() => fetchProfile()} className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all">
-                         Register
-                       </button>
-                     )
-                   )}
+                  {/* 1. If NO Group exists yet */}
+                  {!hasGroup && (
+                    <>
+                      {!isPGStudent ? (
+                        // UG Student needs to form a group
+                        <button 
+                          onClick={() => navigate("/student/group-formation")} 
+                          className="px-8 py-3 bg-slate-900 hover:bg-black text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all flex items-center gap-2 active:scale-95"
+                        >
+                          Form Group <ExternalLink size={14} />
+                        </button>
+                      ) : (
+                        // PG Student needs to register (create solo group)
+                        <button 
+                          onClick={() => setIsConfirmModalOpen(true)} 
+                          className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all"
+                        >
+                          Register
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {/* 2. If Group exists but NO Supervisors (UG or PG) */}
+                  {(hasGroup && !hasSups) && (
+                    <button 
+                      onClick={() => navigate("/student/project-proposals")} 
+                      className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all flex items-center gap-2 active:scale-95"
+                    >
+                      Send Proposal <ExternalLink size={14} />
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -139,8 +175,8 @@ const StudentProfilePage = () => {
                   <div className="text-center md:text-left space-y-4">
                     <div className="flex flex-col md:flex-row items-center gap-4">
                       <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none">{profile?.name}</h1>
-                      <span className={`px-5 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border shadow-sm ${isRegistered ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>
-                        {isRegistered ? "Verified" : "Action Required"}
+                      <span className={`px-5 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border shadow-sm ${hasSups ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>
+                        {hasSups ? "Verified" : "Action Required"}
                       </span>
                     </div>
                     <div className="flex flex-wrap justify-center md:justify-start gap-6 text-slate-500">
@@ -186,7 +222,7 @@ const StudentProfilePage = () => {
                       <ul className="space-y-5 mt-6">
                         <CheckItem label="Institutional Email" checked={true} />
                         <CheckItem label="Academic Standing" checked={true} />
-                        <CheckItem label="Project Registration" checked={isRegistered} />
+                        <CheckItem label="Project Registration" checked={hasSups} />
                       </ul>
                     </div>
                   </div>
@@ -233,6 +269,17 @@ const StudentProfilePage = () => {
             )}
           </div>
         )}
+
+        <ConfirmModal
+          isOpen={isConfirmModalOpen}
+          onClose={() => setIsConfirmModalOpen(false)}
+          onConfirm={handleRegisterPG}
+          title="Register for M.Tech dissertation"
+          message="By confirming you will be marked registered. You can send a project proposal to professors. This action is non reversible."
+          theme="base"
+          children="Confirm"
+          loading={isRegistering}
+        />
       </div>
     </div>
   );
