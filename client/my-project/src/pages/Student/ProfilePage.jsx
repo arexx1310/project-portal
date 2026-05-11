@@ -50,8 +50,11 @@ const StudentProfilePage = () => {
         setProfile(profileData);
         if (profileData?.programType === "PG") setisPGStudent(true);
 
+        console.log(profileData?.groupId);
         if (profileData?.groupId) {
+          
           const groupRes = await groupService.getGroupDetails();
+          console.log(groupRes);
           if (groupRes.success) setGroup(groupRes.data);
         }
       }

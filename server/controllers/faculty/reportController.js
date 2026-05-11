@@ -175,7 +175,7 @@ export const generateUGStatusReport = async (req, res) => {
 
     // Sheet 3 — Formed groups with no supervisors
     const noSupGroups = await Group.find({
-      session: sessionOid, departments: deptId, programType: "UG", status: "Formed",
+      session: sessionOid, departments: deptId, programType: "UG", status: { $in: ["Formed", "SupervisorRequested"] },
       $or: [{ supervisors: { $exists: false } }, { supervisors: { $size: 0 } }],
     })
       .sort({ name: 1 })

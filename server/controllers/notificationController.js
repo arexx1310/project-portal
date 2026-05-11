@@ -16,45 +16,81 @@ import User from "../models/User.js";
  * @param {"student"|"faculty"|"admin"} role
  * @param {ObjectId} fromUserId
  * @param {string}   message
- * @param {Array}    [links]  - [{ label, url }]
  */
-export const notifyUser = async (recipientUserId, role, fromUserId, message, links = []) => {
+export const notifyUser = async (
+  recipientUserId,
+  role,
+  fromUserId,
+  message,
+  dbSession = null
+) => {
   try {
-    await Notification.create({
-      recipient: recipientUserId,
-      recipientRole: role,
-      triggeredBy: fromUserId,
-      message,
-      links,
-    });
+    await Notification.create(
+      [{ recipient: recipientUserId, recipientRole: role, triggeredBy: fromUserId, message }],
+      { session: dbSession }
+    );
   } catch (err) {
     console.error("[notifyUser]", err.message);
   }
 };
 
+
 /**
- * Send to everyone in a group (students + supervisors).
- *
+ * Send to the group
  * @param {ObjectId} groupId
  * @param {ObjectId} fromUserId
  * @param {string}   message
- * @param {Array}    [links]
+ * @param {ClientSession} [dbSession]
  */
-export const notifyGroup = async (groupId, fromUserId, message, links = []) => {
+export const notifyGroup = async (
+  groupId,
+  fromUserId,
+  message,
+  dbSession = null
+) => {
   try {
-    const students =  await Student.find({ groupId }).select("user").lean();
-    const group = await  Group.findById(groupId).select("supervisors").populate("supervisors", "user").lean();
+    const students = await Student.find({ groupId })
+      .select("user")
+      .session(dbSession)
+      .lean();
+
+    // Fetch the group first, then manually resolve faculty users
+    const group = await Group.findById(groupId)
+      .select("supervisors")
+      .session(dbSession)
+      .lean();
+
+    // Manually fetch faculty records to respect the session (populate ignores it)
+    const facultyUsers =
+      group?.supervisors?.length
+        ? await Faculty.find({ _id: { $in: group.supervisors } })
+            .select("user")
+            .session(dbSession)
+            .lean()
+        : [];
 
     const docs = [
-      ...students.map((s) => ({ recipient: s.user, recipientRole: "student" })),
-      ...(group?.supervisors ?? []).filter((f) => f.user).map((f) => ({ recipient: f.user, recipientRole: "faculty" })),
+      ...students.map((s) => ({
+        recipient: s.user,
+        recipientRole: "student",
+      })),
+      ...facultyUsers
+        .filter((f) => f.user)
+        .map((f) => ({
+          recipient: f.user,
+          recipientRole: "faculty",
+        })),
     ];
 
     if (!docs.length) return;
 
     await Notification.insertMany(
-      docs.map((d) => ({ ...d, triggeredBy: fromUserId, message, links })),
-      { ordered: false }
+      docs.map((d) => ({
+        ...d,
+        triggeredBy: fromUserId,
+        message,
+      })),
+      { ordered: false, session: dbSession }
     );
   } catch (err) {
     console.error("[notifyGroup]", err.message);

@@ -171,16 +171,14 @@ export const createProjectRequest = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Title, description, and domain are required." });
     }
 
-    // ── 2. Student — already in middleware, use it directly ───────────────────
-    // req.student = { id, session, department }
-    const { id: studentId, session: sessionId , groupId, semester} = req.student;
+    // ── 2. Student context ────────────────────────────────────────────────────
+    const { id: studentId, session: sessionId, groupId, semester } = req.student;
 
     // ── 3. Group check ────────────────────────────────────────────────────────
     if (!groupId) {
       await dbSession.abortTransaction();
       return res.status(400).json({ success: false, message: "You must be part of a group before submitting a project request." });
     }
-
 
     // ── 4. Load group ─────────────────────────────────────────────────────────
     const group = await Group.findById(groupId)
@@ -194,17 +192,11 @@ export const createProjectRequest = async (req, res, next) => {
     }
 
     // ── 5. Branch by semester ─────────────────────────────────────────────────
-
     let resolvedSupervisorIds;
     let expiresAt;
 
     /* ════════════════════════════════════════════════════════════════
        SEMESTER 7
-       • group.status must be "Formed"
-       • group.supervisors must be empty (no prior supervisor assigned)
-       • lockRecordDeadline must not have passed
-       • supervisorIds count must not exceed maxSupervisors
-       • cross-dept supervisors only allowed if crossDepartmentRules.isAllowed
     ════════════════════════════════════════════════════════════════ */
     if (semester === 7) {
 
@@ -227,22 +219,20 @@ export const createProjectRequest = async (req, res, next) => {
       if (supervisorIds.some((id) => !mongoose.Types.ObjectId.isValid(id))) {
         await dbSession.abortTransaction();
         return res.status(400).json({ success: false, message: "One or more supervisor IDs are invalid." });
-      } 
+      }
 
+      // FIX 1: block ANY pending sem-7 request for this group, not just same-supervisor ones
       const pendingExists = await ProjectApprovalRequest.exists({
         group: group._id,
         "project.semester": 7,
         status: "PendingSupervisorApproval",
-        "supervisorInvites.faculty": { $all: supervisorIds },
       }).session(dbSession);
-
 
       if (pendingExists) {
         await dbSession.abortTransaction();
-        return res.status(400).json({ success: false, message: "A pending project approval request already exists for this group with the same supervisor(s)." });
+        return res.status(400).json({ success: false, message: "A pending project approval request already exists for this group." });
       }
 
-      // Deduplicate
       const uniqueSupervisorIds = [...new Set(supervisorIds.map(String))];
 
       const primaryDeptId = group.departments?.[0];
@@ -251,19 +241,17 @@ export const createProjectRequest = async (req, res, next) => {
         return res.status(400).json({ success: false, message: "Group has no department assigned." });
       }
 
-      // ── Parallel fetch: dept config + all faculty records ─────────────────
-      // Both are needed for validation; fire together to save a round-trip.
-
+      // FIX 2: added .session(dbSession) — was reading outside the transaction
       const primaryDeptConfig = await Department.findById(primaryDeptId)
-          .select("department btpConfig.lockRecordDeadline btpConfig.maxSupervisors btpConfig.crossDepartmentRules")
-          .lean();
+        .select("department btpConfig.lockRecordDeadline btpConfig.maxSupervisors btpConfig.crossDepartmentRules")
+        .lean()
+        .session(dbSession);
 
       const facultyRecords = await Faculty.find({ _id: { $in: uniqueSupervisorIds } })
-          .select("_id department user")
-          .populate("user", "_id role")
-          .lean()
-          .session(dbSession);
-      
+        .select("_id department user")
+        .populate("user", "_id role")
+        .lean()
+        .session(dbSession);
 
       if (!primaryDeptConfig?.btpConfig) {
         await dbSession.abortTransaction();
@@ -291,21 +279,31 @@ export const createProjectRequest = async (req, res, next) => {
       }
 
       // ── Cross-department check ────────────────────────────────────────────
-      // A supervisor is "cross-dept" if their Faculty.department !== the group's primary dept.
       const primaryDeptIdStr = primaryDeptId.toString();
-
       const crossDeptSupervisors = facultyRecords.filter(
         (f) => f.department.toString() !== primaryDeptIdStr
       );
 
-      if (crossDeptSupervisors.length > 0) {
-        if (!btpConfig.crossDepartmentRules?.isAllowed) {
-          await dbSession.abortTransaction();
-          return res.status(400).json({
-            success: false,
-            message: `Department ${deptName} does not allow supervisors from other departments.`,
-          });
-        }
+      if (crossDeptSupervisors.length > 0 && !btpConfig.crossDepartmentRules?.isAllowed) {
+        await dbSession.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: `Department ${deptName} does not allow supervisors from other departments.`,
+        });
+      }
+      
+      // At least one supervisor must belong to one of the group's departments
+      const groupDeptStrs = new Set(group.departments.map((d) => d.toString()));
+      const hasInternalSupervisor = facultyRecords.some((f) =>
+        groupDeptStrs.has(f.department.toString())
+      );
+
+      if (!hasInternalSupervisor) {
+        await dbSession.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: "At least one supervisor must be from one of the group's departments.",
+        });
       }
 
       resolvedSupervisorIds = facultyRecords.map((f) => f._id);
@@ -314,13 +312,9 @@ export const createProjectRequest = async (req, res, next) => {
 
     /* ════════════════════════════════════════════════════════════════
        SEMESTER 8
-       • group.status must be "Active"
-       • supervisors are inherited from group — no body input needed
-       • no btpConfig checks
     ════════════════════════════════════════════════════════════════ */
+    } else if (semester === 8) {
 
-   } else if (semester === 8) {
-      // ── Resolve supervisors: inherit from group, or fall back to body ────────
       if (group.supervisors?.length > 0) {
         resolvedSupervisorIds = group.supervisors;
       } else {
@@ -348,7 +342,6 @@ export const createProjectRequest = async (req, res, next) => {
         resolvedSupervisorIds = facultyRecords.map((f) => f._id);
       }
 
-      // Check no pending request already exists for sem 8
       const pendingExists = await ProjectApprovalRequest.exists({
         group: group._id,
         "project.semester": 8,
@@ -360,9 +353,9 @@ export const createProjectRequest = async (req, res, next) => {
         return res.status(400).json({ success: false, message: "A pending project approval request already exists for this group for sem 8." });
       }
 
-      // 3-month rolling window
       expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 3);
+
     } else {
       await dbSession.abortTransaction();
       return res.status(400).json({ success: false, message: "Project approval requests are only allowed in semester 7 or 8." });
@@ -395,16 +388,25 @@ export const createProjectRequest = async (req, res, next) => {
       );
     }
 
-    await dbSession.commitTransaction();
-    
+    // FIX 4: both notify calls moved BEFORE commitTransaction with dbSession
     if (semester === 7) {
-      // Notify the group students
-      await notifyGroup(group._id, req.user.id, `Your group "${group.name}" has sent a project proposal to supervisor(s). Check details in Project Proposals tab.`);
-
+      await notifyGroup(
+        group._id,
+        req.user.id,
+        `Your group "${group.name}" has sent a project proposal to supervisor(s). Check details in Project Proposals tab.`,
+        dbSession
+      );
     } else if (semester === 8) {
-      await notifyGroup(group._id, req.user.id, `A project proposal has been created for Semester 8 by your group: "${group.name}".`);
+      await notifyGroup(
+        group._id,
+        req.user.id,
+        `A project proposal has been created for Semester 8 by your group: "${group.name}".`,
+        dbSession
+      );
     }
-  
+
+    await dbSession.commitTransaction();
+
     return res.status(201).json({
       success: true,
       message:

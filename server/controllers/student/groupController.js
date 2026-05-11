@@ -294,7 +294,7 @@ export const sendInvite = async (req, res, next) => {
   try {
     const { rollNumber } = req.body;
 
-    /* ── 1. Validate input ───────────────────────────────────────────────────── */
+    /* ── 1. Validate input ───────────────────────────────────────────────── */
     if (!rollNumber || typeof rollNumber !== "string" || !rollNumber.trim()) {
       await dbSession.abortTransaction();
       return res.status(400).json({ success: false, message: "rollNumber must be a non-empty string." });
@@ -302,7 +302,7 @@ export const sendInvite = async (req, res, next) => {
 
     const normalizedRollNumber = rollNumber.trim().toUpperCase();
 
-    /* ── 2. Sender checks — straight from token, no DB ───────────────────────── */
+    /* ── 2. Sender checks — straight from token, no DB ──────────────────── */
     const { id: senderId, groupId, session: sessionId } = req.student;
 
     if (!groupId) {
@@ -310,8 +310,8 @@ export const sendInvite = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "You must be part of a group before sending invites." });
     }
 
-    /* ── 3. Parallel fetch: group + receiver ─────────────────────────────────── */
-    // Neither depends on the other — fire together.
+    /* ── 3. Parallel fetch: group + receiver ─────────────────────────────── */
+    // FIX 1: was two sequential awaits despite the comment saying parallel
     const group = await Group.findById(groupId)
         .select("name departments status")
         .lean()
@@ -320,9 +320,9 @@ export const sendInvite = async (req, res, next) => {
     const receiver = await Student.findOne({ rollNumber: normalizedRollNumber, session: sessionId })
         .select("_id groupId user")
         .lean()
-        .session(dbSession);
+        .session(dbSession);    
 
-    /* ── 4. Group guards ──────────────────────────────────────────────────────── */
+    /* ── 4. Group guards ─────────────────────────────────────────────────── */
     if (!group) {
       await dbSession.abortTransaction();
       return res.status(404).json({ success: false, message: "Group not found." });
@@ -333,15 +333,17 @@ export const sendInvite = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Group has been registered officially. Cannot add more members." });
     }
 
-    /* ── 5. Receiver guards ───────────────────────────────────────────────────── */
+    /* ── 5. Receiver guards ──────────────────────────────────────────────── */
     if (!receiver) {
       await dbSession.abortTransaction();
       return res.status(404).json({ success: false, message: `No student found with roll number "${normalizedRollNumber}" in your session.` });
     }
-
-    if (receiver._id.equals(senderId)) {
+    if (receiver._id.toString() === senderId.toString()) {
       await dbSession.abortTransaction();
-      return res.status(400).json({ success: false, message: "You cannot send an invite to yourself." });
+      return res.status(400).json({
+        success: false,
+        message: "You cannot send an invite to yourself.",
+      });
     }
 
     if (receiver.groupId) {
@@ -349,17 +351,16 @@ export const sendInvite = async (req, res, next) => {
       return res.status(400).json({ success: false, message: `${normalizedRollNumber} is already part of a group.` });
     }
 
-    /* ── 6. Parallel fetch: dept config + duplicate invite check ─────────────── */
-    // Both depend on group being valid — fire together now.
+    /* ── 6.  fetch: dept config + duplicate invite check ─────────── */
+  
     const primaryDept = await Department.findById(group.departments[0])
         .select("department btpConfig.lockRecordDeadline btpConfig.maxStudentsPerGroup")
         .lean()
         .session(dbSession);
 
-    const existingInvite = await  GroupInvite.findOne({ groupId: group._id, receiver: receiver._id, status: "pending" })
+    const existingInvite = await GroupInvite.findOne({ groupId: group._id, receiver: receiver._id, status: "pending" })
         .lean()
         .session(dbSession);
-    
 
     if (!primaryDept?.btpConfig) {
       await dbSession.abortTransaction();
@@ -373,13 +374,13 @@ export const sendInvite = async (req, res, next) => {
 
     const { btpConfig, department: deptName } = primaryDept;
 
-    /* ── 7. Deadline check ────────────────────────────────────────────────────── */
+    /* ── 7. Deadline check ───────────────────────────────────────────────── */
     if (new Date() > new Date(btpConfig.lockRecordDeadline)) {
       await dbSession.abortTransaction();
       return res.status(400).json({ success: false, message: `Invite window has closed. Lock deadline was ${new Date(btpConfig.lockRecordDeadline).toDateString()}.` });
     }
 
-    /* ── 8. Slot check ────────────────────────────────────────────────────────── */
+    /* ── 8. Slot check ───────────────────────────────────────────────────── */
     const { actualSlots, memberCount } = await getActualSlots(
       group._id,
       btpConfig.maxStudentsPerGroup,
@@ -396,7 +397,7 @@ export const sendInvite = async (req, res, next) => {
       return res.status(409).json({ success: false, message: "No slots available. All remaining slots are occupied by pending invites. Withdraw one to proceed." });
     }
 
-    /* ── 9. Create invite ─────────────────────────────────────────────────────── */
+    /* ── 9. Create invite + notify — all inside the transaction ─────────── */
     const expiresAt = new Date(btpConfig.lockRecordDeadline);
     expiresAt.setDate(expiresAt.getDate() + 15);
 
@@ -405,10 +406,23 @@ export const sendInvite = async (req, res, next) => {
       { session: dbSession }
     );
 
+    // FIX 3: both notify calls moved BEFORE commitTransaction and given dbSession
+    await notifyUser(
+      receiver.user,
+      "student",
+      req.user.id,
+      `You received an invite to join group: ${group.name}. Check details in invitation page.`,
+      dbSession
+    );
+    await notifyGroup(
+      group._id,
+      req.user.id,
+      `A group invite has been sent from your group to ${normalizedRollNumber}. Check details in invitation page.`,
+      dbSession
+    );
+
     await dbSession.commitTransaction();
-    
-    await notifyUser(receiver.user, "student", req.user.id,`You received an invite to join group: ${group.name}. Check details in invitation page.`);
-    await notifyGroup(group._id,req.user.id,`A group invite has been sent from your group to ${rollNumber}. Check details in invitation page.`);
+
     return res.status(201).json({
       success: true,
       message: `Invite sent to ${normalizedRollNumber} successfully.`,
@@ -435,14 +449,6 @@ const rejectInvite = async (invite, reason, dbSession) => {
     await invite.save({ session: dbSession });
 };
 
-/* ===============================================================
-   RESPOND INVITE
-=============================================================== */
-/**
- * @desc    Respond to a received group invite
- * @route   PATCH /api/student/group/respond-invite/:inviteId
- * @access  Private (attachStudentProfile middleware required)
- */
 export const respondInvite = async (req, res, next) => {
   const dbSession = await mongoose.startSession();
   dbSession.startTransaction();
@@ -458,12 +464,12 @@ export const respondInvite = async (req, res, next) => {
     }
 
     /* ── 2. Responder — from token, no DB ────────────────────────────────── */
-    const { id: responderId, groupId: responderGroupId, department: responderDeptId, session: sessionId } = req.student;
+    const { id: responderId, groupId: responderGroupId, department: responderDeptId } = req.student;
 
-    /* ── 3. Parallel fetch: invite + responder dept config ───────────────── */
+    /* ── 3. Fetch invite + responder dept config ──────────────────────────── */
     const invite = await GroupInvite.findOne({ _id: inviteId, receiver: responderId, status: "pending" })
         .session(dbSession);
-
+        
     const responderDept = await Department.findById(responderDeptId)
         .select("department btpConfig")
         .lean()
@@ -481,35 +487,52 @@ export const respondInvite = async (req, res, next) => {
 
     const { btpConfig: responderBtpConfig, department: deptName } = responderDept;
 
-    /* ── 4. Already in a group — auto-reject ──────────────────────────────── */
+    /* ── Shared helper: reject + notify, caller commits ──────────────────── */
+    const rejectAndNotify = async (reason, notifyMessage) => {
+      await rejectInvite(invite, reason, dbSession);
+      await notifyGroup(invite.groupId, req.user.id, notifyMessage, dbSession);
+    };
+
+    /* ── 4. Already in a group — auto-reject ─────────────────────────────── */
     if (responderGroupId) {
-      await rejectInvite(invite, "Receiver has already joined another group.", dbSession);
+      await rejectAndNotify(
+        "Receiver has already joined another group.",
+        "Your group invitation was rejected — the recipient has already joined another group."
+      );
       await dbSession.commitTransaction();
       return res.status(200).json({ success: true, message: "Invite rejected automatically as you are already part of a group." });
     }
 
-    /* ── 5. Deadline check — auto-reject if passed ────────────────────────── */
+    /* ── 5. Deadline check — auto-reject if passed ───────────────────────── */
     if (new Date() > new Date(responderBtpConfig.lockRecordDeadline)) {
-      await rejectInvite(invite, `Deadline for department "${deptName}" has passed.`, dbSession);
+      await rejectAndNotify(
+        `Deadline for department "${deptName}" has passed.`,
+        `Your group invitation was rejected — the recipient's department "${deptName}" deadline has passed.`
+      );
       await dbSession.commitTransaction();
       return res.status(200).json({ success: true, message: "Invite rejected as your department's deadline has passed." });
     }
 
-    /* ── 6. Explicit reject ───────────────────────────────────────────────── */
+    /* ── 6. Explicit reject ──────────────────────────────────────────────── */
     if (action === "Reject") {
-      await rejectInvite(invite, "Rejected by receiver.", dbSession);
+      await rejectAndNotify(
+        "Rejected by receiver.",
+        "Your group invitation was rejected. Check details in the invite page."
+      );
       await dbSession.commitTransaction();
-      await notifyGroup(invite.groupId,req.user.id,`Group invitation was ${invite?.status}. Check details in invite page.`);
       return res.status(200).json({ success: true, message: "Invite rejected." });
     }
 
-    /* ── 7. Accept path — fetch group ─────────────────────────────────────── */
+    /* ── 7. Accept path — fetch group ────────────────────────────────────── */
     const group = await Group.findById(invite.groupId)
       .select("_id departments status")
       .session(dbSession);
 
     if (!group || group.status !== "Draft") {
-      await rejectInvite(invite, "Group no longer exists or is not available to join.", dbSession);
+      await rejectAndNotify(
+        "Group no longer exists or is not available to join.",
+        "Your group invitation was rejected — the group is no longer available."
+      );
       await dbSession.commitTransaction();
       return res.status(200).json({ success: false, message: "Group not found or unavailable. Invite has been rejected." });
     }
@@ -517,21 +540,19 @@ export const respondInvite = async (req, res, next) => {
     const responderDeptStr = responderDeptId.toString();
     const isInGroupDepts   = group.departments.map((d) => d.toString()).includes(responderDeptStr);
 
-    /* ── 8. Slot check (shared by both dept paths) ────────────────────────── */
+    /* ── 8. Slot check (shared by both dept paths) ───────────────────────── */
     const { actualSlots, memberCount, pendingCount } = await getActualSlots(
       group._id,
-      responderBtpConfig.maxStudentsPerGroup + 1,  //+1 to exclude the responder itself from pending invites
+      responderBtpConfig.maxStudentsPerGroup + 1,
       dbSession
     );
 
-    /* ── 9. Same department ───────────────────────────────────────────────── */
+    /* ── 9. Same department ──────────────────────────────────────────────── */
     if (isInGroupDepts) {
-    
       if (actualSlots <= 0) {
-        await rejectInvite(
-          invite,
+        await rejectAndNotify(
           `Group is full. Members: ${memberCount}, pending: ${pendingCount}, max: ${responderBtpConfig.maxStudentsPerGroup}.`,
-          dbSession
+          "Your group invitation was rejected — the group has no available slots."
         );
         await dbSession.commitTransaction();
         return res.status(200).json({ success: false, message: "Invite rejected. Group has no available slots per your department's policy." });
@@ -541,46 +562,42 @@ export const respondInvite = async (req, res, next) => {
       invite.expiresAt = null;
       await invite.save({ session: dbSession });
 
-      await Student.updateOne(
-        { _id: responderId },
-        { $set: { groupId: group._id } },
-        { session: dbSession }
-      );
-
+      await Student.updateOne({ _id: responderId }, { $set: { groupId: group._id } }, { session: dbSession });
+      await notifyGroup(group._id, req.user.id, "Your group invitation was accepted.", dbSession);
       await dbSession.commitTransaction();
-      await notifyGroup(group._id,req.user.id,`Group invitation was ${invite?.status}`);
-      await refreshAuthCookie(res,req);
+      await refreshAuthCookie(res, req);
       return res.status(200).json({ success: true, message: "Invite accepted. You have joined the group." });
     }
 
-    /* ── 10. Cross-department ─────────────────────────────────────────────── */
+    /* ── 10. Cross-department ────────────────────────────────────────────── */
     if (!responderBtpConfig.crossDepartmentRules?.isAllowed) {
-      await rejectInvite(invite, `Cross-department collaboration is not permitted for "${deptName}".`, dbSession);
+      await rejectAndNotify(
+        `Cross-department collaboration is not permitted for "${deptName}".`,
+        `Your group invitation was rejected — the recipient's department "${deptName}" does not allow cross-department groups.`
+      );
       await dbSession.commitTransaction();
       return res.status(200).json({ success: false, message: `Invite rejected. Your department "${deptName}" does not allow cross-department groups.` });
     }
 
     if (actualSlots <= 0) {
-      await rejectInvite(
-        invite,
+      await rejectAndNotify(
         `"${deptName}" allows max ${responderBtpConfig.maxStudentsPerGroup} students. Members: ${memberCount}, pending: ${pendingCount}.`,
-        dbSession
+        `Your group invitation was rejected — all slots are occupied per "${deptName}" policy.`
       );
       await dbSession.commitTransaction();
       return res.status(200).json({ success: false, message: `Invite rejected. All slots are occupied per "${deptName}" policy.` });
     }
 
-    /* ── 11. Accept — also register responder's dept in group ─────────────── */
+    /* ── 11. Accept — also register responder's dept in group ────────────── */
     invite.status    = "accepted";
     invite.expiresAt = null;
     await invite.save({ session: dbSession });
 
     await Student.updateOne({ _id: responderId }, { $set: { groupId: group._id } }, { session: dbSession });
-
     await Group.updateOne({ _id: group._id }, { $addToSet: { departments: responderDeptId } }, { session: dbSession });
+    await notifyGroup(group._id, req.user.id, "Your group invitation was accepted.", dbSession);
     await dbSession.commitTransaction();
-    await notifyGroup(group._id,req.user.id,`Group invitation was ${invite?.status}.`);
-    await refreshAuthCookie(res,req);
+    await refreshAuthCookie(res, req);
     return res.status(200).json({ success: true, message: "Invite accepted. You have joined the group." });
 
   } catch (error) {
@@ -655,22 +672,11 @@ const dissolveGroup = async (groupId, memberIds, dbSession) => {
 
 };
 
-
-/* ===============================================================
-   REGISTER GROUP
-=============================================================== */
-/**
- * @desc    Make a group official if it complies with all department BTP policies.
- *          Transitions group status from "Draft" → "Formed".
- * @route   PATCH /api/student/group/register
- * @access  Private (attachStudentProfile middleware required)
- */
 export const registerGroup = async (req, res, next) => {
   const dbSession = await mongoose.startSession();
   dbSession.startTransaction();
 
   try {
-    /* ── 1. groupId from token — no DB fetch needed ───────────────────────── */
     const { groupId } = req.student;
 
     if (!groupId) {
@@ -678,8 +684,6 @@ export const registerGroup = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "You are not part of any group." });
     }
 
-    /* ── 2. Parallel fetch: group + members + dept configs ───────────────── */
-    // Group must come first so we know which depts to fetch.
     const group = await Group.findById(groupId)
       .select("name departments status")
       .lean()
@@ -695,11 +699,10 @@ export const registerGroup = async (req, res, next) => {
       return res.status(400).json({ success: false, message: `Group cannot be registered from its current status: "${group.status}".` });
     }
 
-    // members + dept configs have no dependency on each other — parallel
-    const members = await Student.find({ groupId: group._id }).select("_id department").lean().session(dbSession);
-    
-    const deptConfigs = await Department.find({ _id: { $in: group.departments } }).select("department btpConfig").lean().session(dbSession);
-    
+    const [members, deptConfigs] = await Promise.all([
+      Student.find({ groupId: group._id }).select("_id department").lean().session(dbSession),
+      Department.find({ _id: { $in: group.departments } }).select("department btpConfig").lean().session(dbSession),
+    ]);
 
     const memberIds   = members.map((m) => m._id);
     const memberCount = members.length;
@@ -709,11 +712,16 @@ export const registerGroup = async (req, res, next) => {
       deptConfigs.map((d) => [d._id.toString(), d])
     );
 
-    /* ── Helper: dissolve + respond in one step ───────────────────────────── */
-    // memberIds is fully resolved here — no reference-before-assignment risk
+    /* ── Helper: notify BEFORE dissolving so the group still exists ───────── */
     const dissolveAndRespond = async (message) => {
+      // Notify first — group must still exist in DB at this point
+      await notifyGroup(
+        group._id,
+        req.user.id,
+        `Your group: ${group.name} was dissolved for failing to comply with department policies. ${message}`,
+        dbSession
+      );
       await dissolveGroup(group._id, memberIds, dbSession);
-      await notifyGroup(group._id,req.user.id,`Your group: ${group.name} was dissolved for failing to comply department policies of all members.${message}`);
       await dbSession.commitTransaction();
       await refreshAuthCookie(res, req);
       return res.status(400).json({
@@ -723,7 +731,7 @@ export const registerGroup = async (req, res, next) => {
       });
     };
 
-    /* ── 3. PATH A — Single department ───────────────────────────────────── */
+    /* ── PATH A — Single department ──────────────────────────────────────── */
     if (!isMultiDept) {
       const deptConfig = deptConfigMap[group.departments[0].toString()];
 
@@ -735,19 +743,17 @@ export const registerGroup = async (req, res, next) => {
       const { btpConfig, department: deptName } = deptConfig;
 
       if (new Date() > new Date(btpConfig.lockRecordDeadline)) {
-        return dissolveAndRespond(`Registration deadline for "${deptName}" has passed (${new Date(btpConfig.lockRecordDeadline).toDateString()}).`);
+        return await dissolveAndRespond(`Registration deadline for "${deptName}" has passed (${new Date(btpConfig.lockRecordDeadline).toDateString()}).`);
       }
-
       if (memberCount < btpConfig.minStudentsPerGroup) {
-        return dissolveAndRespond(`Group needs at least ${btpConfig.minStudentsPerGroup} student(s) per "${deptName}" policy. Current: ${memberCount}.`);
+        return await dissolveAndRespond(`Group needs at least ${btpConfig.minStudentsPerGroup} student(s) per "${deptName}" policy. Current: ${memberCount}.`);
       }
-
       if (memberCount > btpConfig.maxStudentsPerGroup) {
-        return dissolveAndRespond(`Group exceeds maximum of ${btpConfig.maxStudentsPerGroup} student(s) per "${deptName}" policy. Current: ${memberCount}.`);
+        return await dissolveAndRespond(`Group exceeds maximum of ${btpConfig.maxStudentsPerGroup} student(s) per "${deptName}" policy. Current: ${memberCount}.`);
       }
     }
 
-    /* ── 4. PATH B — Multiple departments ────────────────────────────────── */
+    /* ── PATH B — Multiple departments ───────────────────────────────────── */
     if (isMultiDept) {
       const membersByDept = members.reduce((acc, m) => {
         const key = m.department.toString();
@@ -769,34 +775,34 @@ export const registerGroup = async (req, res, next) => {
         if (new Date() > new Date(btpConfig.lockRecordDeadline)) {
           return await dissolveAndRespond(`Registration deadline for "${deptName}" has passed (${new Date(btpConfig.lockRecordDeadline).toDateString()}).`);
         }
-
         if (!btpConfig.crossDepartmentRules?.isAllowed) {
           return await dissolveAndRespond(`"${deptName}" does not permit cross-department groups.`);
         }
-
         if (deptMemberCount < btpConfig.crossDepartmentRules.minSameDepartmentStudents) {
           return await dissolveAndRespond(`"${deptName}" requires at least ${btpConfig.crossDepartmentRules.minSameDepartmentStudents} of its own student(s) in the group. Found: ${deptMemberCount}.`);
         }
-
         if (memberCount < btpConfig.minStudentsPerGroup) {
           return await dissolveAndRespond(`Group does not meet minimum size of ${btpConfig.minStudentsPerGroup} required by "${deptName}". Current: ${memberCount}.`);
         }
-
         if (memberCount > btpConfig.maxStudentsPerGroup) {
           return await dissolveAndRespond(`Group exceeds maximum size of ${btpConfig.maxStudentsPerGroup} allowed by "${deptName}". Current: ${memberCount}.`);
         }
       }
     }
 
-    /* ── 5. All checks passed → Formed + clear pending invites ───────────── */
+    /* ── All checks passed → notify + mark Formed + clear pending invites ── */
+    await notifyGroup(
+      group._id,
+      req.user.id,
+      "Your group has been finalized for the BTP process.",
+      dbSession  // inside the transaction so it commits atomically
+    );
 
     await Group.updateOne({ _id: group._id }, { $set: { status: "Formed" } }, { session: dbSession });
     await GroupInvite.deleteMany({ groupId: group._id, status: "pending" }, { session: dbSession });
 
     await dbSession.commitTransaction();
-    
-    await notifyGroup(group._id,req.user.id,"Your group has been finalized for the BTP process.");
-    
+
     return res.status(200).json({ success: true, message: "Group registered successfully." });
 
   } catch (error) {
@@ -806,6 +812,5 @@ export const registerGroup = async (req, res, next) => {
     dbSession.endSession();
   }
 };
-
 
 
