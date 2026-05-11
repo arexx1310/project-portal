@@ -598,6 +598,8 @@ export const deleteDocument = async (req, res, next) => {
     }
     const document = project.documents.find((d) => d._id.toString() === documentId);
 
+    const title = document.label;
+
     if (!document) {
       return res.status(404).json({ success: false, message: "Document not found." });
     }
@@ -610,7 +612,6 @@ export const deleteDocument = async (req, res, next) => {
     await Project.findByIdAndUpdate(projectId, {
       $pull: { documents: { _id: documentId } },
     });
-
     return res.status(200).json({ success: true, message: "Document deleted successfully." });
   } catch (err) {
     next(err);
