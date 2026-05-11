@@ -55,6 +55,7 @@ export const createGroup = async (req, res, next) => {
     const { id: initiatorId, isPG } = req.student;
     const programType = isPG ? "PG" : "UG";
 
+    
     if (
       typeof groupName !== "string" ||
       !groupName.trim() ||
@@ -685,9 +686,11 @@ export const registerGroup = async (req, res, next) => {
     }
 
     const group = await Group.findById(groupId)
-      .select("name departments status")
+      .select("_id name departments status")
       .lean()
       .session(dbSession);
+
+    
 
     if (!group) {
       await dbSession.abortTransaction();
@@ -697,6 +700,16 @@ export const registerGroup = async (req, res, next) => {
     if (group.status !== "Draft") {
       await dbSession.abortTransaction();
       return res.status(400).json({ success: false, message: `Group cannot be registered from its current status: "${group.status}".` });
+    }
+
+    const groupInvites = await GroupInvite.find({
+      groupId: group._id,
+      status: "pending"
+    })
+
+    if (groupInvites.length) {
+      await dbSession.abortTransaction();
+      return res.status(400).json({ success: false, message:"Pending group invites present. Withdraw or wait for students to accept to register." });
     }
 
     const [members, deptConfigs] = await Promise.all([

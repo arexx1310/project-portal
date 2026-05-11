@@ -267,7 +267,7 @@ export const bulkDeleteStudents = async (req, res, next) => {
   const dbSession = await mongoose.startSession();
 
   try {
-    const { departmentId, sessionId } = req.params;
+    const { departmentId, sessionId, semester} = req.params;
 
     // Validate ObjectIds
     if (
@@ -287,7 +287,7 @@ export const bulkDeleteStudents = async (req, res, next) => {
       department: departmentId,
       session: sessionId,
     })
-      .select("_id user")
+      .select("_id user groupId")
       .session(dbSession);
 
     if (!students.length) {
@@ -300,12 +300,19 @@ export const bulkDeleteStudents = async (req, res, next) => {
 
     const studentIds = students.map(s => s._id);
     const userIds = students.filter(s => s.user).map(s => s.user);
+    const groupIds = students.map(s=> s.groupId);
+
+
 
     // Delete students + linked users
     await Student.deleteMany({ _id: { $in: studentIds } }).session(dbSession);
-
+  
     if (userIds.length) {
       await User.deleteMany({ _id: { $in: userIds } }).session(dbSession);
+    }
+    if (groupIds.length) {
+      await Group.deleteMany({_id: {$in: groupIds}}).session(dbSession);
+      await Project.deleteMany({group: {$in: groupIds}}).session(dbSession);
     }
     
     await dbSession.commitTransaction();
