@@ -149,6 +149,29 @@ const ManageStudentPage = () => {
     }
   };
 
+  const handleToggleStatus = async (action) => {
+    if (!filterSession) return toast.error("Please select a session first");
+    
+    const confirmMsg = action === 'activate' 
+      ? `Activate all students in ${currentSessionName}?` 
+      : `Deactivate all students in ${currentSessionName}?`;
+    if (!window.confirm(confirmMsg)) return;
+    setActionLoading(true);
+    try {
+      if (action === 'activate') {
+        await studentService.activateStudents(filterSession);
+        toast.success(`All students in ${currentSessionName} activated`);
+      } else {
+        await studentService.deactivateStudents(filterSession);
+        toast.success(`All students in ${currentSessionName} deactivated`);
+      }
+      fetchStudents(pagination.page); // Refresh the list to show updated status if applicable
+    } catch (err) {
+      toast.error(err?.message || "Operation failed");
+    } finally {
+      setActionLoading(false);
+    }
+  };
   const currentSessionName = useMemo(() => {
     return sessions.find(s => s._id === filterSession)?.name || "...";
   }, [sessions, filterSession]);
@@ -192,7 +215,27 @@ const ManageStudentPage = () => {
             <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input type="text" placeholder="Search by name, email or roll..." className="w-full h-14 pl-14 pr-6 bg-slate-50 border-none rounded-[1.5rem] focus:ring-2 focus:ring-blue-500 font-bold text-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
-
+          {/* Session Activation Controls */}
+          <div className="flex gap-1 border-r border-slate-200 pr-2 mr-1">
+            <button
+              onClick={() => handleToggleStatus('activate')}
+              disabled={actionLoading}
+              title="Activate All in Session"
+              className="h-12 px-4 flex items-center gap-2 bg-emerald-50 text-emerald-600 rounded-[1.2rem] hover:bg-emerald-600 hover:text-white transition-all font-black text-[9px] uppercase"
+            >
+              <Users size={16} />
+              Activate
+            </button>
+            <button
+              onClick={() => handleToggleStatus('deactivate')}
+              disabled={actionLoading}
+              title="Deactivate All in Session"
+              className="h-12 px-4 flex items-center gap-2 bg-amber-50 text-amber-600 rounded-[1.2rem] hover:bg-amber-600 hover:text-white transition-all font-black text-[9px] uppercase"
+            >
+              <X size={16} />
+              Deactivate
+            </button>
+          </div>
           {/* Bulk Action UI kept */}
           <div className="flex gap-2 items-center bg-red-50/50 p-1 rounded-[1.5rem] border border-red-100">
             <select
@@ -214,6 +257,8 @@ const ManageStudentPage = () => {
               <Trash2 size={18} />
             </button>
           </div>
+          
+
         </div>
 
         {/* Students Table */}

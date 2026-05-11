@@ -37,6 +37,16 @@ const studentService = {
     const response = await axiosInstance.delete(API_PATHS.ADMIN.BULK_DELETE_STUDENT(departmentId,sessionId));
     return response.data;
   },
+
+  activateStudents:  async (sessionId) => {
+    const response = await axiosInstance.patch(API_PATHS.ADMIN.ACTIVATE_SESSION_USERS(sessionId));
+    return response.data;
+  },
+
+  deactivateStudents:  async (sessionId) => {
+    const response = await axiosInstance.patch(API_PATHS.ADMIN.DEACTIVATE_SESSION_USERS(sessionId));
+    return response.data;
+  }
 };
 
 export default studentService;

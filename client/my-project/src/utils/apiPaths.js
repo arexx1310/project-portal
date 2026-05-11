@@ -23,6 +23,12 @@ export const API_PATHS = {
     ACTIVATE_SESSION: (id) => `/api/admin/sessions/${id}/activate`,
     DELETE_SESSION: (id) => `/api/admin/sessions/${id}/delete`,
 
+    DEACTIVATE_SESSION_USERS: (id) =>
+      `/api/admin/sessions/${id}/deactivate-users`,
+
+    ACTIVATE_SESSION_USERS: (id) =>
+      `/api/admin/sessions/${id}/activate-users`,
+
     // Students
     UPLOAD_STUDENTS: (id) =>  `/api/admin/upload/students/${id}`,
     GET_STUDENTS: "/api/admin/students",

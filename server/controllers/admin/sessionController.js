@@ -310,131 +310,77 @@ export const deleteSession = async (req, res, next) => {
 
 
 /**
- * @desc Activae students of a session
+ * @desc Toggle active status of students in a session
+ * @param {boolean} activate - true to activate, false to deactivate
+ */
+const toggleSessionUsers = async (req, res, next, activate) => {
+  const mongoSession = await mongoose.startSession();
+
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid session ID",
+      });
+    }
+
+    let modifiedUsers = 0;
+
+    await mongoSession.withTransaction(async () => {
+      const session = await Session.findById(id).session(mongoSession);
+
+      if (!session) {
+        // ⚠️ NOTE: See caveat below about this pattern
+        return res.status(404).json({
+          success: false,
+          message: "Session not found",
+        });
+      }
+
+      const students = await Student.find({ session: session._id })
+        .select("user")
+        .session(mongoSession);
+
+      const userIds = students.map((s) => s.user);
+
+      if (userIds.length > 0) {
+        const result = await User.updateMany(
+          { _id: { $in: userIds } },
+          { $set: { isActive: activate } },
+          { session: mongoSession }
+        );
+        modifiedUsers = result.modifiedCount;
+      }
+    });
+
+    const action = activate ? "activated" : "deactivated";
+    return res.status(200).json({
+      success: true,
+      message: `Session and all related student accounts ${action} successfully`,
+      modifiedUsers,
+    });
+
+  } catch (error) {
+    next(error);
+  } finally {
+    mongoSession.endSession();
+  }
+};
+
+/**
+ * @desc Activate students of a session
  * @route PATCH /api/admin/sessions/:id/activate-users
  * @access Admin
  */
-export const activateUsers = async (req, res, next) => {
-  const mongoSession = await mongoose.startSession();
+export const activateStudents = (req, res, next) =>
+  toggleSessionUsers(req, res, next, true);
 
-  try {
-    const { id } = req.params;
-
-    //Validate ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid session ID",
-      });
-    }
-
-    let modifiedUsers = 0;
-
-    await mongoSession.withTransaction(async () => {
-
-      //Fetch session inside transaction
-      const session = await Session.findById(id).session(mongoSession);
-
-      if (!session) {
-        return res.status(404).json({
-            success: false,
-            message: "Session not found",
-        });
-      }
-
-      //Find related students
-      const students = await Student.find({ session: session._id })
-        .select("user")
-        .session(mongoSession);
-
-      const userIds = students.map((s) => s.user);
-
-      // Activate related users only if exist
-      if (userIds.length > 0) {
-        const result = await User.updateMany(
-          { _id: { $in: userIds } },
-          { $set: { isActive: true } },
-          { session: mongoSession }
-        );
-        modifiedUsers = result.modifiedCount;
-      }
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: "Session and all related student accounts activated successfully",
-      modifiedUsers,
-    });
-
-  } catch (error) {
-    next(error);
-  } finally {
-    mongoSession.endSession();
-  }
-};
-
-
-// CHANGED IT TO DEACTIVATE USERS 
 /**
- * @desc Deactivae students of a session
+ * @desc Deactivate students of a session
  * @route PATCH /api/admin/sessions/:id/deactivate-users
  * @access Admin
  */
-export const deactivateUsers = async (req, res, next) => {
-  const mongoSession = await mongoose.startSession();
-
-  try {
-    const { id } = req.params;
-
-    //Validate ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid session ID",
-      });
-    }
-
-    let modifiedUsers = 0;
-
-    await mongoSession.withTransaction(async () => {
-
-      //Fetch session inside transaction
-      const session = await Session.findById(id).session(mongoSession);
-
-      if (!session) {
-        return res.status(404).json({
-            success: false,
-            message: "Session not found",
-        });
-      }
-
-      //Find related students
-      const students = await Student.find({ session: session._id })
-        .select("user")
-        .session(mongoSession);
-
-      const userIds = students.map((s) => s.user);
-
-      // Deactivate related users only if exist
-      if (userIds.length > 0) {
-        const result = await User.updateMany(
-          { _id: { $in: userIds } },
-          { $set: { isActive: false } },
-          { session: mongoSession }
-        );
-        modifiedUsers = result.modifiedCount;
-      }
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: "Session and all related student accounts deactivated successfully",
-      modifiedUsers,
-    });
-
-  } catch (error) {
-    next(error);
-  } finally {
-    mongoSession.endSession();
-  }
-};
+export const deactivateStudents = (req, res, next) =>
+  toggleSessionUsers(req, res, next, false);
