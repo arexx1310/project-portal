@@ -312,7 +312,7 @@ export default function PublicationDetail({
 
             <section className="bg-white/60 backdrop-blur-sm rounded-3xl border border-white shadow-sm overflow-hidden">
 
-              <div className="px-5 py-5 border-b border-white/40 flex items-center gap-3 font-black text-slate-600 uppercase text-xs tracking-widest">
+              <div className="px-8 py-5 border-b border-white/40 flex items-center gap-3 font-black text-slate-600 uppercase text-xs tracking-widest">
                 <div className="p-1 bg-pink-500 rounded-lg text-white shadow-sm">
                   <Info size={16} />
                 </div>

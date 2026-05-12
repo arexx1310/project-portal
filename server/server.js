@@ -45,6 +45,7 @@ app.use(
         connectSrc: [
           "'self'",
           process.env.FRONTEND_URL,
+          "https://btp-general.vercel.app",
           process.env.BACKEND_URL,
         ].filter(Boolean),
         fontSrc: ["'self'"],
@@ -59,7 +60,10 @@ app.use(
 /* ================= CORS ================= */
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: [
+      process.env.FRONTEND_URL,
+      "https://btp-general.vercel.app",
+    ].filter(Boolean),
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   })
