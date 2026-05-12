@@ -89,7 +89,7 @@ router.post("/project-proposal/:requestId/respond",respondToRequest);
 router.post("/project-proposal/:requestId/respond-pg",respondToMtpRequest); // Master's Student Invite
 router.get("/project-proposal/my-requests/:inviteId",getProjectRequestDetails);
 
-router.get("/mtech-students",getMTechStudents); //Master's student list under faculties supervision
+router.get("/mtech-students",getMTechStudents); //Master's student 
 
 /* ============== Faculty's Group ============ */
 router.get("/groups/my-groups",getMyGroups);
@@ -150,8 +150,8 @@ router.get(
 
 /* ============== Department Overview (Committee / HOD) ============ */
  
-// UG overview — BTP committee members + HOD
-// GET /faculty/department/ug-students?sessionId=&semester=7|8&page=1&limit=20
+// UG overview — Project committee members + HOD
+// GET /faculty/department/ug-students?sessionId=&semester=7|8&page=1&limit=50
 router.get(
   "/department/ug-students",
   authorizeFacultyRoles("PROJECT_COMMITTEE_HEAD", "PROJECT_COMMITTEE_MEMBER", "HOD"),
@@ -159,7 +159,7 @@ router.get(
 );
  
 // PG overview — HOD only
-// GET /faculty/department/pg-students?sessionId=&semester=1|2|3|4&page=1&limit=20
+// GET /faculty/department/pg-students?sessionId=&semester=1|2|3|4&page=1&limit=50
 router.get(
   "/department/pg-students",
   authorizeFacultyRoles("HOD"),

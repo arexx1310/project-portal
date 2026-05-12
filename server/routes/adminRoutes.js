@@ -74,10 +74,11 @@ router.patch("/sessions/:id/activate",activateSession);
 router.delete("/sessions/:id/delete",deleteSession);
 
 
-router.patch("/sessions/:id/deactivate-users",deactivateStudents);
-router.patch("/sessions/:id/activate-users",activateStudents);
+
 
 // ================= STUDENTS ================= */
+router.patch("/sessions/:id/deactivate-users",deactivateStudents);
+router.patch("/sessions/:id/activate-users",activateStudents);
 router.post("/upload/students/:departmentId", upload.single("file"), uploadStudents);
 router.get("/students", getStudents);
 router.get("/students/stats", getStudentStats);

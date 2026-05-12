@@ -10,6 +10,11 @@ import { notifyUser, notifyGroup } from "../notificationController.js";
 import { deleteFileFromDrive, getTemporaryViewUrl, resolveUploadFolder, uploadFileToDrive } from "../../config/googledrive.js";
 
 
+/**
+ * @desc Get projects list 
+ * @route GET /api/student/projects/my-projects
+ * @access Private (attachStudentProfile middleware required)
+ */
 
 export const getMyProjects = async (req, res, next) => {
   try {
@@ -470,11 +475,13 @@ export const cancelProjectRequest = async (req, res, next) => {
         message: "This request can no longer be cancelled.",
       });
     }
+
+    const title = request?.project?.title;
  
     await ProjectApprovalRequest.findByIdAndDelete(inviteId, { 
       session: dbSession,
     });
-    
+    await notifyGroup(groupId, req.student.id,`The project proposal request "${title} was cancelled.`,dbSession);
     await dbSession.commitTransaction();
   
     return res.status(200).json({
@@ -516,6 +523,13 @@ const resolveLabels = async (project, student) => {
 };
 
 
+
+
+/**
+ * @desc To upload project realted documents 
+ * @route POST /api/student/projects/:projectId/delete-report/:documentId
+ * @access Private (attachStudentProfile middleware required)
+ */
 export const uploadDocument = async (req, res, next) => {
   try {
     const { projectId } = req.params;
@@ -577,6 +591,11 @@ export const uploadDocument = async (req, res, next) => {
 };
 
 
+/**
+ * @desc To upload project realted documents 
+ * @route GET /api/student//projects/:projectId/get-documents
+ * @access Private (attachStudentProfile middleware required)
+ */
 export const deleteDocument = async (req, res, next) => {
   try {
     const { projectId, documentId } = req.params;

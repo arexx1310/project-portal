@@ -5,9 +5,6 @@ import Group from "../models/Group.js";
 import User from "../models/User.js";
 
 
-/* ══════════════════════════════════════════════════════
-   HELPERS  (for internal / programmatic use)
-   ══════════════════════════════════════════════════════ */
 
 /**
  * Send to a single user.

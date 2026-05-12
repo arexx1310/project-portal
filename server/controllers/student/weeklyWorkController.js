@@ -4,7 +4,6 @@ import WorkItem from "../../models/WorkItem.js";
 import Project from "../../models/Project.js";
 
 
-// Weekly Work controller student
 /* ─────────────────────────────────────────────────────
    HELPER
 ───────────────────────────────────────────────────── */

@@ -11,3 +11,5 @@
 };
 
 export default authorize;
+
+// roles = {"admin","faculty","student"} to apply role based access 
