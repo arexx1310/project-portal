@@ -107,12 +107,11 @@ const ConfirmModal = ({ isOpen, onCancel, onConfirm, saving, departmentName, con
 // ─────────────────────────────────────────────────────────────────────────────
 
 const BTPConfigCard = ({ initialConfig, departmentId, departmentName, canEdit }) => {
-  const [btp, setBtp]                   = useState(initialConfig);
-  const [originalBtp, setOriginalBtp]   = useState(initialConfig);
-  const [saving, setSaving]             = useState(false);
+  const [btp, setBtp] = useState(initialConfig);
+  const [originalBtp, setOriginalBtp] = useState(initialConfig);
+  const [saving, setSaving] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  // Mirror: when parent re-fetches (e.g. page refresh), sync down
   useEffect(() => {
     setBtp(initialConfig);
     setOriginalBtp(initialConfig);
@@ -124,7 +123,7 @@ const BTPConfigCard = ({ initialConfig, departmentId, departmentName, canEdit })
 
     const coerce = (v) => {
       if (type === "checkbox") return checked;
-      if (type === "number")   return v === "" ? "" : parseInt(v, 10);
+      if (type === "number") return v === "" ? "" : parseInt(v, 10);
       return v;
     };
 
@@ -168,10 +167,10 @@ const BTPConfigCard = ({ initialConfig, departmentId, departmentName, canEdit })
     try {
       const payload = {
         ...btp,
-        groupCreationDeadline:       toISOFromDateInput(btp.groupCreationDeadline),
+        groupCreationDeadline: toISOFromDateInput(btp.groupCreationDeadline),
         supervisorSelectionDeadline: toISOFromDateInput(btp.supervisorSelectionDeadline),
-        projectProposalDeadline:     toISOFromDateInput(btp.projectProposalDeadline),
-        lockRecordDeadline:          toISOFromDateInput(btp.lockRecordDeadline),
+        projectProposalDeadline: toISOFromDateInput(btp.projectProposalDeadline),
+        lockRecordDeadline: toISOFromDateInput(btp.lockRecordDeadline),
       };
 
       await deptConfigService.updateBTPConfig(departmentId, { btpConfig: payload });
@@ -192,16 +191,22 @@ const BTPConfigCard = ({ initialConfig, departmentId, departmentName, canEdit })
 
   return (
     <>
-      <form onSubmit={handleSaveClick} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-10">
-
+      <form 
+        onSubmit={handleSaveClick} 
+        className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm p-6 md:p-10 space-y-8 md:space-y-10"
+      >
         {/* Card header */}
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
-            <BookOpen size={24} />
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-50 rounded-xl md:rounded-2xl flex items-center justify-center text-blue-600 shrink-0">
+            <BookOpen size={20} className="md:w-6 md:h-6" />
           </div>
           <div>
-            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight italic">BTP Configuration</h3>
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Bachelor's Thesis Project rules</p>
+            <h3 className="text-lg md:text-xl font-black text-slate-900 uppercase tracking-tight italic leading-tight">
+              BTP Configuration
+            </h3>
+            <p className="text-slate-400 text-[9px] md:text-[10px] font-bold uppercase tracking-widest">
+              Bachelor's Thesis Project rules
+            </p>
           </div>
         </div>
 
@@ -210,9 +215,9 @@ const BTPConfigCard = ({ initialConfig, departmentId, departmentName, canEdit })
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
             <Users size={12} /> Group Formation
           </p>
-          <div className="space-y-4">
-            <ConfigInput label="Min Students / Group"  name="minStudentsPerGroup"  value={btp.minStudentsPerGroup}  onChange={handleChange} disabled={!canEdit} icon={Users} />
-            <ConfigInput label="Max Students / Group"  name="maxStudentsPerGroup"  value={btp.maxStudentsPerGroup}  onChange={handleChange} disabled={!canEdit} icon={Users} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <ConfigInput label="Min Students / Group" name="minStudentsPerGroup" value={btp.minStudentsPerGroup} onChange={handleChange} disabled={!canEdit} icon={Users} />
+            <ConfigInput label="Max Students / Group" name="maxStudentsPerGroup" value={btp.maxStudentsPerGroup} onChange={handleChange} disabled={!canEdit} icon={Users} />
           </div>
         </div>
 
@@ -222,7 +227,7 @@ const BTPConfigCard = ({ initialConfig, departmentId, departmentName, canEdit })
             <ShieldCheck size={12} /> Supervision
           </p>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <ConfigInput label="Min Supervisors" name="minSupervisors" value={btp.minSupervisors} onChange={handleChange} disabled={!canEdit} icon={ShieldCheck} />
               <ConfigInput label="Max Supervisors" name="maxSupervisors" value={btp.maxSupervisors} onChange={handleChange} disabled={!canEdit} icon={ShieldCheck} />
             </div>
@@ -235,10 +240,10 @@ const BTPConfigCard = ({ initialConfig, departmentId, departmentName, canEdit })
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
             <Globe size={12} /> Cross-Department
           </p>
-          <div className="space-y-6">
-            <div className="flex items-center justify-between p-6 bg-slate-50 rounded-3xl border border-slate-100">
+          <div className="space-y-4 md:space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 md:p-6 bg-slate-50 rounded-2xl md:rounded-3xl border border-slate-100 gap-4">
               <div className="flex items-center gap-3">
-                <Building2 className="text-emerald-500" size={20} />
+                <Building2 className="text-emerald-500 shrink-0" size={20} />
                 <div>
                   <p className="text-sm font-black text-slate-900 uppercase tracking-tight">Allow Cross-Dept Groups</p>
                   <p className="text-[10px] text-slate-400 font-bold uppercase">Students can collaborate across departments</p>
@@ -253,7 +258,7 @@ const BTPConfigCard = ({ initialConfig, departmentId, departmentName, canEdit })
                   disabled={!canEdit}
                   className="sr-only peer"
                 />
-                <div className="w-14 h-8 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500"></div>
+                <div className="w-12 md:w-14 h-7 md:h-8 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 md:after:h-6 after:w-5 md:after:w-6 after:transition-all peer-checked:bg-emerald-500"></div>
               </label>
             </div>
 
@@ -273,27 +278,28 @@ const BTPConfigCard = ({ initialConfig, departmentId, departmentName, canEdit })
 
         {/* Deadlines */}
         <div>
-          
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+            <Clock size={12} /> Deadlines
+          </p>
           <div className="space-y-4">
-            
-            <ConfigInput type="date" label="Lock Record Deadline"          name="lockRecordDeadline"          value={toDateInput(btp.lockRecordDeadline)}          onChange={handleChange} disabled={!canEdit} icon={Clock} />
+            <ConfigInput type="date" label="Lock Record Deadline" name="lockRecordDeadline" value={toDateInput(btp.lockRecordDeadline)} onChange={handleChange} disabled={!canEdit} icon={Clock} />
           </div>
         </div>
 
         {/* Actions */}
         {canEdit && (
-          <div className="flex justify-end gap-4 pt-4">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 md:gap-4 pt-4">
             <button
               type="button"
               onClick={handleReset}
-              className="flex items-center gap-3 px-8 py-4 bg-slate-100 text-slate-600 rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
+              className="flex items-center justify-center gap-3 px-6 md:px-8 py-3 md:py-4 bg-slate-100 text-slate-600 rounded-xl md:rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-slate-200 transition-all text-xs md:text-sm"
             >
               <X size={18} /> Discard
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-slate-200 disabled:opacity-50"
+              className="flex items-center justify-center gap-3 px-6 md:px-8 py-3 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-slate-200 disabled:opacity-50 text-xs md:text-sm"
             >
               {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
               Save BTP Config
@@ -321,9 +327,9 @@ const BTPConfigCard = ({ initialConfig, departmentId, departmentName, canEdit })
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MTPConfigCard = ({ initialConfig, departmentId, departmentName, canEdit }) => {
-  const [mtp, setMtp]                   = useState(initialConfig);
-  const [originalMtp, setOriginalMtp]   = useState(initialConfig);
-  const [saving, setSaving]             = useState(false);
+  const [mtp, setMtp] = useState(initialConfig);
+  const [originalMtp, setOriginalMtp] = useState(initialConfig);
+  const [saving, setSaving] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   useEffect(() => {
@@ -337,7 +343,7 @@ const MTPConfigCard = ({ initialConfig, departmentId, departmentName, canEdit })
 
     const coerce = (v) => {
       if (type === "checkbox") return checked;
-      if (type === "number")   return v === "" ? "" : parseInt(v, 10);
+      if (type === "number") return v === "" ? "" : parseInt(v, 10);
       return v;
     };
 
@@ -385,8 +391,8 @@ const MTPConfigCard = ({ initialConfig, departmentId, departmentName, canEdit })
   // Department doesn't run a PG programme — show a placeholder instead
   if (!initialConfig) {
     return (
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 flex flex-col items-center justify-center text-center gap-4 min-h-[200px]">
-        <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300">
+      <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm p-6 md:p-10 flex flex-col items-center justify-center text-center gap-4 min-h-[200px]">
+        <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-50 rounded-xl md:rounded-2xl flex items-center justify-center text-slate-300">
           <GraduationCap size={24} />
         </div>
         <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">
@@ -398,16 +404,22 @@ const MTPConfigCard = ({ initialConfig, departmentId, departmentName, canEdit })
 
   return (
     <>
-      <form onSubmit={handleSaveClick} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-10">
-
+      <form 
+        onSubmit={handleSaveClick} 
+        className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm p-6 md:p-10 space-y-8 md:space-y-10"
+      >
         {/* Card header */}
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
-            <GraduationCap size={24} />
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-50 rounded-xl md:rounded-2xl flex items-center justify-center text-indigo-600 shrink-0">
+            <GraduationCap size={20} className="md:w-6 md:h-6" />
           </div>
           <div>
-            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight italic">MTP Configuration</h3>
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Master's Thesis Project rules</p>
+            <h3 className="text-lg md:text-xl font-black text-slate-900 uppercase tracking-tight italic leading-tight">
+              MTP Configuration
+            </h3>
+            <p className="text-slate-400 text-[9px] md:text-[10px] font-bold uppercase tracking-widest">
+              Master's Thesis Project rules
+            </p>
           </div>
         </div>
 
@@ -416,8 +428,8 @@ const MTPConfigCard = ({ initialConfig, departmentId, departmentName, canEdit })
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
             <ShieldCheck size={12} /> Supervision
           </p>
-          <div className="space-y-4">
-            <ConfigInput label="Max Supervisors / Student"   name="maxSupervisors"          value={mtp.maxSupervisors}          onChange={handleChange} disabled={!canEdit} icon={ShieldCheck} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <ConfigInput label="Max Supervisors / Student" name="maxSupervisors" value={mtp.maxSupervisors} onChange={handleChange} disabled={!canEdit} icon={ShieldCheck} />
             <ConfigInput label="Max MTP Students / Supervisor" name="maxStudentsPerSupervisor" value={mtp.maxStudentsPerSupervisor} onChange={handleChange} disabled={!canEdit} icon={Users} />
           </div>
         </div>
@@ -427,9 +439,9 @@ const MTPConfigCard = ({ initialConfig, departmentId, departmentName, canEdit })
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
             <Globe size={12} /> Cross-Department
           </p>
-          <div className="flex items-center justify-between p-6 bg-slate-50 rounded-3xl border border-slate-100">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 md:p-6 bg-slate-50 rounded-2xl md:rounded-3xl border border-slate-100 gap-4">
             <div className="flex items-center gap-3">
-              <Building2 className="text-indigo-500" size={20} />
+              <Building2 className="text-indigo-500 shrink-0" size={20} />
               <div>
                 <p className="text-sm font-black text-slate-900 uppercase tracking-tight">Allow Cross-Dept Supervisors</p>
                 <p className="text-[10px] text-slate-400 font-bold uppercase">Students may invite faculty from other departments</p>
@@ -444,31 +456,33 @@ const MTPConfigCard = ({ initialConfig, departmentId, departmentName, canEdit })
                 disabled={!canEdit}
                 className="sr-only peer"
               />
-              <div className="w-14 h-8 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-500"></div>
+              <div className="w-12 md:w-14 h-7 md:h-8 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 md:after:h-6 after:w-5 md:after:w-6 after:transition-all peer-checked:bg-indigo-500"></div>
             </label>
           </div>
         </div>
 
         {/* Deadline */}
         <div>
-          
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+            <Clock size={12} /> Finalization
+          </p>
           <ConfigInput type="date" label="Lock Record Deadline" name="lockRecordDeadline" value={toDateInput(mtp.lockRecordDeadline)} onChange={handleChange} disabled={!canEdit} icon={Clock} />
         </div>
 
         {/* Actions */}
         {canEdit && (
-          <div className="flex justify-end gap-4 pt-4">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 md:gap-4 pt-4">
             <button
               type="button"
               onClick={handleReset}
-              className="flex items-center gap-3 px-8 py-4 bg-slate-100 text-slate-600 rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
+              className="flex items-center justify-center gap-3 px-6 md:px-8 py-3 md:py-4 bg-slate-100 text-slate-600 rounded-xl md:rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-slate-200 transition-all text-xs md:text-sm"
             >
               <X size={18} /> Discard
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 disabled:opacity-50"
+              className="flex items-center justify-center gap-3 px-6 md:px-8 py-3 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 disabled:opacity-50 text-xs md:text-sm"
             >
               {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
               Save MTP Config

@@ -254,7 +254,7 @@ export default function PublicationDetail({
   return (
     <div className="min-h-screen bg-slate-50 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-pink-100/40 via-slate-50 to-white">
 
-      <div className="max-w-7xl mx-auto p-3 space-y-10">
+      <div className="max-w-7xl mx-auto p-1 space-y-10">
 
         {/* HEADER */}
 
@@ -312,8 +312,8 @@ export default function PublicationDetail({
 
             <section className="bg-white/60 backdrop-blur-sm rounded-3xl border border-white shadow-sm overflow-hidden">
 
-              <div className="px-8 py-5 border-b border-white/40 flex items-center gap-3 font-black text-slate-600 uppercase text-xs tracking-widest">
-                <div className="p-2 bg-pink-500 rounded-lg text-white shadow-sm">
+              <div className="px-5 py-5 border-b border-white/40 flex items-center gap-3 font-black text-slate-600 uppercase text-xs tracking-widest">
+                <div className="p-1 bg-pink-500 rounded-lg text-white shadow-sm">
                   <Info size={16} />
                 </div>
 
