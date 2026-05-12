@@ -357,10 +357,7 @@ export default function LandingPage() {
           <div className="lp-hero-inner">
             {/* copy */}
             <div className={`fade d1 ${heroVisible ? "in" : ""}`}>
-              <div className="lp-chip">
-                <span className="lp-chip-dot" />
-                Portal live · Academic Year 2025–26
-              </div>
+              
 
               <h1 className="lp-h1">
                 One portal for<br />every project<br /><em>milestone.</em>
