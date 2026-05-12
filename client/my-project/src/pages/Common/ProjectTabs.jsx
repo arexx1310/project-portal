@@ -14,7 +14,7 @@ import Documents from "./FileUploadPage";
 const ProjectTabs = ({ projectId }) => {
   const { user } = useAuth();
   const isFaculty = user.role === "faculty";
-  const [activeTab, setActiveTab] = useState("details");
+  const [activeTab, setActiveTab] = useState("updates");
 
   const tabs = [
     { id: "details", label: "Details", icon: FileText },

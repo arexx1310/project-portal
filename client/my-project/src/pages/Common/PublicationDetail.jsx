@@ -550,8 +550,8 @@ export default function PublicationDetail({
                     </p>
 
                     <div className="mt-2 text-[9px] uppercase tracking-tighter font-bold text-pink-400 bg-pink-50 w-fit px-2 py-0.5 rounded">
-                      {r.addedBy?.name ?? "User"} •{" "}
-                      {new Date(r.date).toLocaleDateString()}
+                      {r.addedBy?.user?.name ?? "User"} •{" "}
+                      {new Date(r.date).toLocaleDateString("en-IN")}
                     </div>
                   </div>
                 ))}
