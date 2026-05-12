@@ -93,16 +93,6 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
               icon: ListChecks,
               text: "Department Overview",
             },
-
-            hasFacultyRole([
-              "PROJECT_COMMITTEE_HEAD",
-              "PROJECT_COMMITTEE_MEMBER",
-              "HOD",
-            ]) && {
-              to: "/faculty/student-management",
-              icon: FileText,
-              text: "Reports",
-            },
           ].filter(Boolean),
         },
 

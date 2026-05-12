@@ -5,6 +5,7 @@ import { useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoutes";
 import AppLayout from "./components/layout/AppLayout";
 
+import LandingPage from "./pages/LandingPage";
 // Auth pages
 import AdminLoginPage from "./pages/Auth/AdminLoginPage";
 import LoginPage from "./pages/Auth/LoginPage";
@@ -63,7 +64,7 @@ const App = () => {
           element={
             isAuthenticated
               ? <Navigate to={roleHome(user?.role)} replace />
-              : <Navigate to="/login" replace />
+              : <LandingPage />   // ← was <Navigate to="/login" replace />
           }
         />
 
@@ -107,7 +108,6 @@ const App = () => {
             <Route path="/faculty/profile" element={<FacultyProfilePage />} />
             <Route path="/faculty/config" element={<DeptConfigPage/>} />
             <Route path="/faculty/department-overview" element={<DepartmentHub/>}/>
-            <Route path="/faculty/student-management" element={<StudentsManagementPage />} />
             <Route path="/faculty/project-proposals/ug" element={<SupervisionRequestsPage />}/>
             <Route path="/faculty/project-proposals/pg" element={<SupervisionRequestsPage isPG={true}/>}/>
             <Route path="/faculty/my-groups" element={<MyGroupsPage/>}/>
