@@ -154,7 +154,7 @@ export default function LandingPage() {
         /* BUTTONS */
         .btn-primary {
           display: inline-flex; align-items: center; gap: 7px;
-          padding: 10px 22px;
+          padding: 5px 15px;
           background: #4f46e5; color: #fff;
           font-size: 14px; font-weight: 500; font-family: inherit;
           border: none; border-radius: 9px; cursor: pointer;
@@ -338,7 +338,6 @@ export default function LandingPage() {
             </div>
             <div>
               <div className="lp-brand-name">UniProject Portal</div>
-              <div className="lp-brand-sub">Academic Project Management</div>
             </div>
           </div>
           <div className="lp-nav-actions">
