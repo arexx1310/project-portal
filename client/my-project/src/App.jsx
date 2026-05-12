@@ -4,7 +4,7 @@ import { useAuth } from "./context/AuthContext";
 
 import ProtectedRoute from "./components/auth/ProtectedRoutes";
 import AppLayout from "./components/layout/AppLayout";
-
+import Loader from "./components/ui/Loader";
 import LandingPage from "./pages/LandingPage";
 // Auth pages
 import AdminLoginPage from "./pages/Auth/AdminLoginPage";
@@ -56,6 +56,13 @@ const roleHome = (role) => {
 const App = () => {
   const { isAuthenticated, loading, user } = useAuth();
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader/>
+      </div>
+    );
+  }
   return (
     <Router>
       <Routes>

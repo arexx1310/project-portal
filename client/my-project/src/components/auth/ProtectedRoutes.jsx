@@ -2,6 +2,7 @@ import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
+import Loader from "../ui/Loader";
 const ProtectedRoute = ({
   allowedRoles = [],     // e.g. ["admin"], ["student"], ["faculty"]
   redirectTo = "/login", // fallback route
@@ -12,7 +13,7 @@ const ProtectedRoute = ({
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <p>Loading...</p>
+        <Loader/>
       </div>
     );
   }
