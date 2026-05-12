@@ -129,24 +129,22 @@ const StudentProfilePage = () => {
             <div className="bg-white rounded-[3rem] border border-slate-200/60 shadow-xl shadow-slate-200/40 overflow-hidden relative transition-all">
               
               {/* Action Button (Only visible in Overview) */}
+              {/* Action Button: Now responsive */}
               {activeTab === "overview" && (
-                <div className="absolute top-6 right-6 md:top-10 md:right-10 z-20">
-                  {/* 1. If NO Group exists yet */}
+                <div className="flex justify-center md:block md:absolute md:top-10 md:right-10 z-20 mb-8 md:mb-0">
                   {!hasGroup && (
                     <>
                       {!isPGStudent ? (
-                        // UG Student needs to form a group
                         <button 
                           onClick={() => navigate("/student/group-formation")} 
-                          className="px-8 py-3 bg-slate-900 hover:bg-black text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all flex items-center gap-2 active:scale-95"
+                          className="w-full md:w-auto px-8 py-3 bg-slate-900 hover:bg-black text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all flex items-center justify-center gap-2 active:scale-95"
                         >
                           Form Group <ExternalLink size={14} />
                         </button>
                       ) : (
-                        // PG Student needs to register (create solo group)
                         <button 
                           onClick={() => setIsConfirmModalOpen(true)} 
-                          className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all"
+                          className="w-full md:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all"
                         >
                           Register
                         </button>
@@ -154,11 +152,10 @@ const StudentProfilePage = () => {
                     </>
                   )}
 
-                  {/* 2. If Group exists but NO Supervisors (UG or PG) */}
                   {(hasGroup && !hasSups) && (
                     <button 
                       onClick={() => navigate("/student/project-proposals")} 
-                      className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all flex items-center gap-2 active:scale-95"
+                      className="w-full md:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all flex items-center justify-center gap-2 active:scale-95"
                     >
                       Send Proposal <ExternalLink size={14} />
                     </button>
