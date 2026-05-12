@@ -17,7 +17,7 @@ import ConfirmModal from "../../components/common/ConfirmModal";
 
 // Services
 import projectProposalService from "../../services/Student/projectProposalService";
-import toast from "react-hot-toast";
+import {toast} from "react-hot-toast";
 
 const MyProposals = () => {
   const navigate = useNavigate();
@@ -113,7 +113,7 @@ const MyProposals = () => {
             ) : (
               <button 
                 onClick={() => navigate("/student/create-proposal")}
-                className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-indigo-100"
               >
                 <Plus size={16} />
                 New Proposal

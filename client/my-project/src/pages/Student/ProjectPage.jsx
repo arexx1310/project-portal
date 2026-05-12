@@ -100,7 +100,7 @@ const ProjectsPage = () => {
                 <p className="text-sm font-bold text-slate-500 mb-4">No projects found</p>
                 <button 
                   onClick={() => navigate('/student/project-proposals')}
-                  className="px-6 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-all"
                 >
                   Propose New Project
                 </button>
