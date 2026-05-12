@@ -1,10 +1,11 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { Bell, User, Menu } from "lucide-react";
 
 const Header = ({ toggleSidebar }) => {
   const { user } = useAuth();
-
+  const navigate = useNavigate();
   
   return (
     <header className="sticky top-0 z-30 w-full bg-white/80 backdrop-blur-md border-b border-slate-200/60">
@@ -22,7 +23,8 @@ const Header = ({ toggleSidebar }) => {
 
         <div className="flex items-center gap-4">
           {/* Notifications (future use) */}
-          <button className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">
+          <button className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
+            onClick={()=> navigate(`/${user.role}/dashboard`)}>
             <Bell size={20} strokeWidth={2} />
             <span className="absolute top-2 right-2.5 w-2 h-2 bg-emerald-500 border-2 border-white rounded-full" />
           </button>

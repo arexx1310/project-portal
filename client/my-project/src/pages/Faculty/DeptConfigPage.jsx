@@ -499,7 +499,7 @@ const DeptConfigPage = () => {
   const [loading, setLoading] = useState(true);
 
   // BTP: BTP_COMMITTEE_HEAD or HOD can edit
-  const canEditBTP = hasFacultyRole(user, ["BTP_COMMITTEE_HEAD", "HOD"]);
+  const canEditBTP = hasFacultyRole(user, ["PROJECT_COMMITTEE_HEAD", "HOD"]);
   // MTP: HOD only
   const canEditMTP = hasFacultyRole(user, ["HOD"]);
 

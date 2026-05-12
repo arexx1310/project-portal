@@ -183,14 +183,23 @@ const SupervisorRequestPage = ({isPG = false}) => {
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
-                <div className="p-4 bg-slate-50 rounded-2xl text-slate-300 mb-4">
-                  <AlertCircle size={40} />
+              <div className="flex flex-col items-center justify-center py-20 md:py-32 px-6 bg-white rounded-[2.5rem] md:rounded-[3rem] border-2 border-dashed border-slate-200">
+                {/* Icon Container */}
+                <div className="p-4 bg-slate-50 rounded-2xl text-slate-300 mb-6">
+                  <AlertCircle size={40} strokeWidth={1.5} />
                 </div>
-                <h3 className="text-lg font-black text-slate-800">No Pending Requests</h3>
-                <p className="text-slate-400 font-medium">You don't have any supervision requests to review at the moment.</p>
+
+                {/* Text Content */}
+                <div className="text-center max-w-[280px] md:max-w-none">
+                  <h3 className="text-xl md:text-lg font-black text-slate-800 uppercase tracking-tight md:normal-case">
+                    No Pending Requests
+                  </h3>
+                  <p className="text-slate-400 font-medium text-sm md:text-base mt-2 leading-relaxed">
+                    You don't have any supervision requests to review at the moment.
+                  </p>
+                </div>
               </div>
-            )}
+              )}
           </div>
         )}
       </div>
