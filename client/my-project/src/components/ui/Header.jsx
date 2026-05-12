@@ -14,7 +14,7 @@ const Header = ({
           {/* Icon & Titles */}
           <div className="flex items-center gap-3 min-w-0">
             {Icon && (
-              <div className="sm:flex w-10 h-10 items-center justify-center bg-slate-900 rounded-xl text-white shadow-lg shadow-slate-200 shrink-0">
+              <div className="flex w-10 h-10 items-center justify-center bg-slate-900 rounded-xl text-white shadow-lg shadow-slate-200 shrink-0">
                 <Icon size={20} />
               </div>
             )}
