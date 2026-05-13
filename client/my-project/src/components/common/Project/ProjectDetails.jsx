@@ -86,7 +86,7 @@ const ProjectDetails = ({ projectId, isFaculty = false }) => {
     const payload = {};
     const editableFields = isFaculty
       ? ["title", "description", "domain", "status"]
-      : ["title", "description", "domain"];
+      : [];
 
     for (const field of editableFields) {
       const trimmed = typeof draft[field] === "string" ? draft[field].trim() : draft[field];

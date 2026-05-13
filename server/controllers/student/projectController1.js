@@ -226,18 +226,6 @@ export const createProjectRequest = async (req, res, next) => {
         return res.status(400).json({ success: false, message: "One or more supervisor IDs are invalid." });
       }
 
-      // FIX 1: block ANY pending sem-7 request for this group, not just same-supervisor ones
-      const pendingExists = await ProjectApprovalRequest.exists({
-        group: group._id,
-        "project.semester": 7,
-        status: "PendingSupervisorApproval",
-      }).session(dbSession);
-
-      if (pendingExists) {
-        await dbSession.abortTransaction();
-        return res.status(400).json({ success: false, message: "A pending project approval request already exists for this group. Withdraw to send a new one" });
-      }
-
       const uniqueSupervisorIds = [...new Set(supervisorIds.map(String))];
 
       const primaryDeptId = group.departments?.[0];

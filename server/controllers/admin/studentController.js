@@ -1,5 +1,7 @@
 import Student from "../../models/Student.js";
 import Session from "../../models/Session.js";
+import Project from "../../models/Project.js";
+import Group from "../../models/Group.js";
 import mongoose from "mongoose";
 import User from "../../models/User.js";
 import Department from "../../models/DepartmentConfig.js";

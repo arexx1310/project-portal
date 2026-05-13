@@ -68,8 +68,8 @@ export const getProjectById = async (req, res, next) => {
  */
 
 /* ─── Editable fields per role ──────────────────────────────────────────── */
-const STUDENT_FIELDS = ["title", "description", "domain"];
-const FACULTY_FIELDS = ["title", "description", "domain", "status"];
+const STUDENT_FIELDS = [];
+const FACULTY_FIELDS = ["title", "description", "status"];
 
 /* ─── Valid supervisor-driven status transitions ────────────────────────── */
 const ALLOWED_TRANSITIONS = {

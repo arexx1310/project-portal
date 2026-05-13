@@ -8,7 +8,7 @@ import Loader from "../../components/ui/Loader";
 import GroupDetails from "../../components/common/Group/GroupDetails";
 import ProjectTabs from "../Common/ProjectTabs";
 
-import myGroupsService from "../../services/Faculty/groupsService";
+import groupsService from "../../services/Faculty/groupsService";
 
 import toast from "react-hot-toast";
 const GroupDetailsPage = () => {
@@ -23,7 +23,7 @@ const GroupDetailsPage = () => {
     const fetchDetails = async () => {
       setLoading(true);
       try {
-        const response = await myGroupsService.getGroupDetails(groupId);
+        const response = await groupsService.getGroupDetails(groupId);
         if (response.success) {
           setGroup(response.data);
           setIsPG(response.data.isPG);

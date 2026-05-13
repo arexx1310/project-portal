@@ -2,7 +2,7 @@ import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { Axios } from "axios";
 
-const myGroupsService = {
+const groupsService = {
 
     /* ============== GROUP INVITES ============ */
 
