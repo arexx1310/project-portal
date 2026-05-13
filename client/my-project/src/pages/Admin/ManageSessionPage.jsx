@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import sessionService from "../../services/Admin/sessionService";
 import {
   CheckCircle2, Loader2, Calendar, PlayCircle, Clock,
-  ShieldCheck, Trash2, Plus
+  ShieldCheck, Trash2, Plus, Edit3, X, Check
 } from "lucide-react";
-import toast from "react-hot-toast";
+import {toast} from "react-hot-toast";
 
 // Components
 import Header from "../../components/ui/Header";
@@ -16,6 +16,10 @@ const ManageSessionPage = () => {
   const [loading, setLoading] = useState(true);
   const [sessionsList, setSessionList] = useState([]);
   const [actionLoading, setActionLoading] = useState(false);
+  
+  // --- Form & Editing State ---
+  const [isEditingDates, setIsEditingDates] = useState(false);
+  const [editFormData, setEditFormData] = useState(null);
 
   // Modal State
   const [modalConfig, setModalConfig] = useState({
@@ -42,6 +46,51 @@ const ManageSessionPage = () => {
   useEffect(() => {
     fetchSessions();
   }, []);
+
+  // ─── Edit Logic ────────────────────────────────────────────────────────────
+
+  const startEditing = (session) => {
+    setEditFormData({
+      oddSemester: {
+        startDate: session.oddSemester.startDate?.split('T')[0] || "",
+        endDate: session.oddSemester.endDate?.split('T')[0] || "",
+      },
+      evenSemester: {
+        startDate: session.evenSemester.startDate?.split('T')[0] || "",
+        endDate: session.evenSemester.endDate?.split('T')[0] || "",
+      }
+    });
+    setIsEditingDates(true);
+  };
+
+  const handleDateChange = (sem, field, value) => {
+    setEditFormData(prev => ({
+      ...prev,
+      [sem]: { ...prev[sem], [field]: value }
+    }));
+  };
+
+  const handleUpdateDates = async (id) => {
+    try {
+      setActionLoading(true);
+      const res = await sessionService.updateSessionDates(id, editFormData);
+      
+      if (res.success) {
+        toast.success(res.message || "Academic timeline updated");
+        setSessionList(prevList => 
+          prevList.map(session => 
+            session._id === id ? res.session : session
+          )
+        );
+
+        setIsEditingDates(false);
+      }
+    } catch (error) {
+      toast.error(error?.message || "Failed to update dates");
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   // ─── Modal Triggers ────────────────────────────────────────────────────────
 
@@ -116,7 +165,7 @@ const ManageSessionPage = () => {
             </button>
           }
         />
-        
+
         {sessionsList.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 text-center bg-white border-2 border-dashed border-slate-200 rounded-[3rem]">
             <div className="w-20 h-20 rounded-[2rem] bg-slate-50 flex items-center justify-center mb-6">
@@ -132,73 +181,156 @@ const ManageSessionPage = () => {
             {sessionsList.map((session) => (
               <div
                 key={session._id}
-                className={`group relative bg-white border-2 transition-all duration-500 rounded-[2.5rem] p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-8
+                className={`group relative bg-white border-2 transition-all duration-500 rounded-[2.5rem] p-8 flex flex-col
                   ${session.isActive 
                     ? "border-emerald-500 shadow-2xl shadow-emerald-100 ring-4 ring-emerald-50/50" 
                     : "border-slate-100 hover:border-slate-200 shadow-sm"}`}
               >
-                {/* Info Section */}
-                <div className="flex items-start sm:items-center gap-6">
-                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0
-                    ${session.isActive ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-300'}`}>
-                    <Clock size={32} />
-                  </div>
-                  
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-3 mb-2">
-                      <h3 className="font-black text-slate-900 text-xl truncate">{session.name}</h3>
-                      {session.isActive ? (
-                        <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-emerald-200 flex items-center gap-1">
-                          <CheckCircle2 size={12} /> Live
-                        </span>
-                      ) : (
-                        <span className="bg-slate-100 text-slate-500 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-slate-200">
-                          Standby
-                        </span>
-                      )}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                  {/* Info Section */}
+                  <div className="flex items-start sm:items-center gap-6">
+                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0
+                      ${session.isActive ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-300'}`}>
+                      <Clock size={32} />
                     </div>
                     
-                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                      <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-tight">
-                        <Calendar size={14} /> AY {session.academicYear}
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-3 mb-2">
+                        <h3 className="font-black text-slate-900 text-xl truncate">{session.name}</h3>
+                        {session.isActive ? (
+                          <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-emerald-200 flex items-center gap-1">
+                            <CheckCircle2 size={12} /> Live
+                          </span>
+                        ) : (
+                          <span className="bg-slate-100 text-slate-500 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-slate-200">
+                            Standby
+                          </span>
+                        )}
                       </div>
-                      <div className="hidden sm:block w-1 h-1 rounded-full bg-slate-200" />
-                      <div className="text-xs font-bold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
-                        Odd Sem: <span className="text-slate-900 ml-1 font-mono">{new Date(session.oddSemester.startDate).toLocaleDateString('en-IN')}</span>
-                      </div>
-                      <div className="text-xs font-bold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
-                        Even Sem: <span className="text-slate-900 ml-1 font-mono">{new Date(session.evenSemester.startDate).toLocaleDateString('en-IN')}</span>
+                      
+                      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                        <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-tight">
+                          <Calendar size={14} /> AY {session.academicYear}
+                        </div>
+                        <div className="hidden sm:block w-1 h-1 rounded-full bg-slate-200" />
+                        <div className="text-xs font-bold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                          Odd Sem: <span className="text-slate-900 ml-1 font-mono">{new Date(session.oddSemester.startDate).toLocaleDateString('en-IN')}-{new Date(session.oddSemester.endDate).toLocaleDateString('en-IN')}</span>
+                        </div>
+                        <div className="text-xs font-bold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                          Even Sem: <span className="text-slate-900 ml-1 font-mono">{new Date(session.evenSemester.startDate).toLocaleDateString('en-IN')}-{new Date(session.evenSemester.endDate).toLocaleDateString('en-IN')}</span>
+                        </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Actions Section */}
+                  <div className="flex items-center gap-3 lg:shrink-0">
+                    {!session.isActive ? (
+                      <>
+                        <button
+                          onClick={() => openActivateModal(session)}
+                          className="flex-1 lg:flex-none px-8 py-4 rounded-2xl bg-slate-900 text-white font-black hover:bg-indigo-600 transition-all shadow-lg hover:shadow-indigo-100 flex items-center justify-center gap-2 group/btn"
+                        >
+                          <PlayCircle size={18} className="group-hover/btn:scale-110 transition-transform" /> 
+                          Activate
+                        </button>
+                        <button
+                          onClick={() => openDeleteModal(session)}
+                          className="p-4 rounded-2xl text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div className="text-emerald-600 font-black text-sm px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100">
+                          Currently Active Session
+                        </div>
+
+                        <button
+                          onClick={() => startEditing(session)}
+                          className={`p-4 rounded-2xl transition-all border-2 ${
+                            isEditingDates 
+                            ? "bg-slate-900 border-slate-900 text-white" 
+                            : "bg-white border-slate-100 text-slate-400 hover:text-slate-900 hover:border-slate-200 shadow-sm"
+                          }`}
+                        >
+                          <Edit3 size={20} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Actions Section */}
-                <div className="flex items-center gap-3 lg:shrink-0">
-                  {!session.isActive && (
-                    <>
-                      <button
-                        onClick={() => openActivateModal(session)}
-                        className="flex-1 lg:flex-none px-8 py-4 rounded-2xl bg-slate-900 text-white font-black hover:bg-indigo-600 transition-all shadow-lg hover:shadow-indigo-100 flex items-center justify-center gap-2 group/btn"
-                      >
-                        <PlayCircle size={18} className="group-hover/btn:scale-110 transition-transform" /> 
-                        Activate
-                      </button>
-                      <button
-                        onClick={() => openDeleteModal(session)}
-                        className="p-4 rounded-2xl text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all"
-                      >
-                        <Trash2 size={20} />
-                      </button>
-                    </>
-                  )}
-                  
-                  {session.isActive && (
-                    <div className="text-emerald-600 font-black text-sm px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100">
-                      Currently Active Session
+                {/* Extended Edit Form */}
+                {session.isActive && isEditingDates && editFormData && (
+                  <div className="mt-8 pt-8 border-t border-slate-100 animate-in slide-in-from-top-4 duration-300">
+                    <div className="relative bg-slate-50 rounded-[2rem] p-6 md:p-8">
+                      {actionLoading && (
+                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-[2rem]">
+                          <Loader2 className="animate-spin text-slate-900" size={32} />
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Odd Semester */}
+                        <div className="space-y-4">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Odd Semester Timeline</label>
+                          <div className="grid grid-cols-2 gap-4">
+                            <input 
+                              type="date" 
+                              value={editFormData.oddSemester.startDate}
+                              onChange={(e) => handleDateChange('oddSemester', 'startDate', e.target.value)}
+                              className="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm font-bold focus:border-slate-900 outline-none transition-colors" 
+                            />
+                            <input 
+                              type="date" 
+                              value={editFormData.oddSemester.endDate}
+                              onChange={(e) => handleDateChange('oddSemester', 'endDate', e.target.value)}
+                              className="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm font-bold focus:border-slate-900 outline-none transition-colors" 
+                            />
+                          </div>
+                        </div>
+
+                        {/* Even Semester */}
+                        <div className="space-y-4">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Even Semester Timeline</label>
+                          <div className="grid grid-cols-2 gap-4">
+                            <input 
+                              type="date" 
+                              value={editFormData.evenSemester.startDate}
+                              onChange={(e) => handleDateChange('evenSemester', 'startDate', e.target.value)}
+                              className="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm font-bold focus:border-slate-900 outline-none transition-colors" 
+                            />
+                            <input 
+                              type="date" 
+                              value={editFormData.evenSemester.endDate}
+                              onChange={(e) => handleDateChange('evenSemester', 'endDate', e.target.value)}
+                              className="w-full bg-white border-2 border-slate-100 rounded-xl p-3 text-sm font-bold focus:border-slate-900 outline-none transition-colors" 
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Footer Buttons */}
+                      <div className="flex justify-end gap-3 mt-8">
+                        <button
+                          onClick={() => setIsEditingDates(false)}
+                          className="w-12 h-12 rounded-full flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all"
+                        >
+                          <X size={24} />
+                        </button>
+                        <button
+                          onClick={() => handleUpdateDates(session._id)}
+                          disabled={actionLoading}
+                          className="px-8 h-12 rounded-2xl bg-slate-900 text-white font-black flex items-center gap-2 hover:bg-emerald-600 transition-all shadow-lg shadow-slate-200"
+                        >
+                          <Check size={20} /> Update Timeline
+                        </button>
+                      </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

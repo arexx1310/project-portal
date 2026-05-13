@@ -38,7 +38,7 @@ const Header = ({ toggleSidebar }) => {
 
               <div className="hidden sm:block">
                 <p className="text-xs font-medium text-slate-500 mt-1 leading-none">
-                  {user?.email || "user@example.com"}
+                  {user?.email}
                 </p>
               </div>
             </div>

@@ -22,6 +22,7 @@ export const API_PATHS = {
     GET_ACTIVE_SESSION: "/api/admin/sessions/active",
     ACTIVATE_SESSION: (id) => `/api/admin/sessions/${id}/activate`,
     DELETE_SESSION: (id) => `/api/admin/sessions/${id}/delete`,
+    UPDATE_SESSION_DATES: (id) => `/api/admin/sessions/${id}`,
 
     DEACTIVATE_SESSION_USERS: (id) =>
       `/api/admin/sessions/${id}/deactivate-users`,

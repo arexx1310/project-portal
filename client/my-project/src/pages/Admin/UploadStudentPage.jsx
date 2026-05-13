@@ -82,7 +82,6 @@ const UploadStudentsPage = () => {
     const toastId = toast.loading("Processing records...");
 
     try {
-      
       const res = await uploadService.uploadStudents(file, selectedDept, selectedProgram);
       if (res.success) {
         setSummary(res.summary);

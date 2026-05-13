@@ -177,7 +177,13 @@ const UploadFacultyPage = () => {
                     <p className="text-xs text-slate-500">Validation passed • Ready to sync</p>
                   </div>
                   <button 
-                    onClick={() => setFile(null)}
+                    onClick={() => {
+                      setFile(null);
+                      // Reset the actual input value so the same file can be picked again
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = "";
+                      }
+                    }}
                     className="p-2 hover:bg-red-50 text-red-400 hover:text-red-600 rounded-lg transition-colors"
                   >
                     <Trash2 size={20} />

@@ -26,6 +26,7 @@ import {
   activateSession,
   activateStudents,
   deactivateStudents,
+  updateActiveSessionDates,
 } from "../controllers/admin/sessionController.js";
 
 // Student Information controllers
@@ -69,12 +70,10 @@ router.put("/department/:id", editDepartment);
 /* ================= SESSION ================= */
 router.post("/sessions", createSession);
 router.get("/sessions", getSessions);
+router.patch("/sessions/:id",updateActiveSessionDates);
 router.get("/sessions/active", getActiveSession);
 router.patch("/sessions/:id/activate",activateSession);
 router.delete("/sessions/:id/delete",deleteSession);
-
-
-
 
 // ================= STUDENTS ================= */
 router.patch("/sessions/:id/deactivate-users",deactivateStudents);

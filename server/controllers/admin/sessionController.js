@@ -306,6 +306,147 @@ export const deleteSession = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc Update active academic session data (ONLY DATES)
+ * @route PATCH /api/admin/sessions/:id
+ * @access Admin
+ */
+export const updateActiveSessionDates = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const session = await Session.findOne({
+      _id: id,
+      isActive: true,
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Active session not found.",
+      });
+    }
+
+    const allowedStartYear = session.academicYear;
+    const allowedEndYear = session.academicYear + 1;
+
+    // Existing Dates (fallback values)
+    let oddStart = session.oddSemester.startDate;
+    let oddEnd = session.oddSemester.endDate;
+
+    let evenStart = session.evenSemester.startDate;
+    let evenEnd = session.evenSemester.endDate;
+
+    // Update only sent fields
+    if (req.body?.oddSemester?.startDate) {
+      oddStart = new Date(req.body.oddSemester.startDate);
+
+      if (isNaN(oddStart)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid odd semester start date.",
+        });
+      }
+    }
+
+    if (req.body?.oddSemester?.endDate) {
+      oddEnd = new Date(req.body.oddSemester.endDate);
+
+      if (isNaN(oddEnd)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid odd semester end date.",
+        });
+      }
+    }
+
+    if (req.body?.evenSemester?.startDate) {
+      evenStart = new Date(req.body.evenSemester.startDate);
+
+      if (isNaN(evenStart)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid even semester start date.",
+        });
+      }
+    }
+
+    if (req.body?.evenSemester?.endDate) {
+      evenEnd = new Date(req.body.evenSemester.endDate);
+
+      if (isNaN(evenEnd)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid even semester end date.",
+        });
+      }
+    }
+
+    const allDates = [oddStart, oddEnd, evenStart, evenEnd];
+
+    // Validate academic year range
+    for (const date of allDates) {
+      const year = date.getFullYear();
+
+      if (
+        year !== allowedStartYear &&
+        year !== allowedEndYear
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: `All semester dates must fall within ${allowedStartYear}-${allowedEndYear}.`,
+        });
+      }
+    }
+
+    // End Date Validation
+    if (oddEnd <= oddStart || evenEnd <= evenStart) {
+      return res.status(400).json({
+        success: false,
+        message: "End date must be after start date.",
+      });
+    }
+
+    // Minimum Duration = 2 Months
+    const minDurationMs = 60 * 24 * 60 * 60 * 1000;
+
+    if (
+      (oddEnd - oddStart) < minDurationMs ||
+      (evenEnd - evenStart) < minDurationMs
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Each semester must be at least 2 months long.",
+      });
+    }
+
+    // Even semester must start after odd semester ends
+    if (evenStart <= oddEnd) {
+      return res.status(400).json({
+        success: false,
+        message: "Even semester must start after odd semester ends.",
+      });
+    }
+
+    // Save updated values
+    session.oddSemester.startDate = oddStart;
+    session.oddSemester.endDate = oddEnd;
+
+    session.evenSemester.startDate = evenStart;
+    session.evenSemester.endDate = evenEnd;
+
+    await session.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Session dates updated successfully.",
+      session,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 /**
  * @desc Toggle active status of students in a session

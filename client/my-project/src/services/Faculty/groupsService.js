@@ -29,4 +29,4 @@ const groupsService = {
     
 };
 
-export default myGroupsService;
+export default groupsService;
