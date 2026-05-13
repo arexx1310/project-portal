@@ -1,7 +1,5 @@
 //controllers/admin/sessionController.js
 
-// Checked 
-
 import mongoose from "mongoose";
 
 import User from "../../models/User.js";

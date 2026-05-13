@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "../../components/ui/Header";
 import SessionDropdown from "../../components/common/General/SessionDropDown";
 
-import myGroupsService from "../../services/Faculty/groupsService";
+import groupsService from "../../services/Faculty/groupsService";
 import generalServices from "../../services/Faculty/generalService";
 
 // Reusable Components
@@ -27,8 +27,8 @@ const MyGroupsPage = ({isPG=false}) => {
     try {
       // sessionId will be null on initial load, returning current session groups
       const response = isPG ? 
-        await myGroupsService.getMTechStudents(sessionId) :
-        await myGroupsService.getAllGroups(sessionId);
+        await groupsService.getMTechStudents(sessionId) :
+        await groupsService.getAllGroups(sessionId);
 
       if (response.success) {
         
