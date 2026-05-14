@@ -112,11 +112,15 @@ const ManageFacultyPage = () => {
   const handleRoleUpdate = async () => {
     setActionLoading(true);
     try {
-      await facultyService.updateFaculty(editRoleModal.faculty._id, { roles: selectedRoles });
+      const res = await facultyService.updateFaculty(editRoleModal.faculty._id, { roles: selectedRoles });
       toast.success("Permissions updated");
       setEditRoleModal({ isOpen: false, faculty: null });
       setConfirmRoleChange(false);
-      fetchInitialData();
+      setFacultyList(prevList => 
+          prevList.map(faculty => 
+            faculty._id === id ? res.data : faculty
+          )
+      );
     } catch (err) {
       toast.error("Update failed");
     } finally {
