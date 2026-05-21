@@ -1,4 +1,4 @@
-# 🎓 BTP Management System
+# 🎓 Academic Project Management System
 
 A full-stack web application for managing Bachelor's and Master's Technical Projects (BTP/MTP) at NSUT. It streamlines the entire project lifecycle — from session creation and group formation to supervisor assignment, progress tracking, document submissions, and publication management — for Admins, Faculty, and Students.
 
