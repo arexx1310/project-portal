@@ -152,7 +152,7 @@ root/
 
 ```bash
 git clone https://github.com/your-username/btp-general.git
-cd btp-general-main
+cd project-portal
 ```
 
 ### 2. Setup the Server
